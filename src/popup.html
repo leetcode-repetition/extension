@@ -1,0 +1,44 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" charset="utf-8">
+    <link rel="stylesheet" href="./static/style.css">
+    <script src="extension.js" defer></script>
+    <title>Problem - LeetCode</title>
+  </head>
+
+  <body>
+    <div id="overlay" style="display:none;">
+
+      <div id="popup">
+          <span id="close-btn" onclick="closePopup()">&times;</span>
+          <p>Great Job! You completed .problem name. difficulty.</p>
+          <p>When would you like to repeat this problem?</p>
+
+          <div id="anki-btns">
+            <button>1 Day</button>
+            <button>3 Days</button>
+            <button>7 Days</button>
+            <button>14 Days</button>
+            <button>NEVER</button>
+          </div>
+          <div id="custom">
+            <p>Custom: </p>
+            <input type="text">
+          </div>
+      </div>
+    </div>
+
+    <button onclick="openPopup()">Show Popup</button>
+  </body>
+  
+  <script>
+    function openPopup() {
+        document.getElementById('overlay').style.display = 'flex';
+    }
+
+    function closePopup() {
+        document.getElementById('overlay').style.display = 'none';
+    }
+  </script>
+</html>
