@@ -11,10 +11,6 @@ const popupHTML = `
             <button>14 Days</button>
             <button>NEVER</button>
         </div>
-        <div id="lre-custom-input">
-            <p>Custom: </p>
-            <input type="text">
-        </div>
     </div>
 </div>
 `;
@@ -78,6 +74,7 @@ function checkForAcceptedMessage() {
 
     const resultElement = document.querySelector('span[data-e2e-locator="submission-result"]');
     if (resultElement && resultElement.textContent.includes('Accepted')) {
+        console.log("Hellow orkd");
         lastProcessedSubmissionNumber = currentSubmissionNumber;
         console.log('Submission Accepted!');
         console.log(lastProcessedSubmissionNumber);
@@ -103,3 +100,4 @@ const observer = new MutationObserver((mutations) => {
 });
 
 observer.observe(document.body, { childList: true, subtree: true });
+console.log("Checking for acceptance...")
