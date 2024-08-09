@@ -12,6 +12,7 @@ html, body {
     color: white;
     font-family: Arial, Helvetica, sans-serif;
     padding: 20px;
+    width: 340px;
 }
 
 #header {
@@ -44,6 +45,12 @@ button {
     margin-left: auto;
 }
 
+#header button:hover {
+    background-color: #ff8c00;
+    border: none;
+    border-radius: 10%;
+}
+
 #header button img {
     height: 30px;
     width: 30px;
@@ -51,9 +58,14 @@ button {
 
 #problem-list {
     display: flex;
-    gap: 2px;
+    align-items: center;
+}
+
+#problem-list > p {
+    flex: 1;
 }
 
 #problem-list button {
     background-color: red;
+    height: 30px;
 }
