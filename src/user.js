@@ -12,8 +12,11 @@ function getCookieValue(name) {
     return null;
 }
 
-
-if (!window.leetcodeUsername) {
-    window.leetcodeUsername = getCookieValue('gr_last_sent');
-    console.log(`Value of gr_last_sent cookie: ${window.globalUsername}`);
+window.onload = (e) => {
+    setTimeout(() => {
+        if (!window.leetcodeUsername) {
+            window.leetcodeUsername = getCookieValue('gr_last_sent_cs1');
+            console.log(`Value of gr_last_sent_cr1 cookie: ${window.leetcodeUsername}`);
+        }
+    }, 1000);
 }

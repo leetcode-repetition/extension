@@ -1,42 +1,59 @@
-#overlay {
-    position: fixed;
-    inset: 0;
-    background: rgba(0, 0, 0, 0.4);
-    display: flex;
-    justify-content: center;
-    align-items: center;
+html, body {
+    margin: 0;
+    padding: 0;
+    border: none;
+    box-sizing: border-box;
 }
 
-#popup {
-    background: #1a1a1a;
-    padding: 10px;
-    border-radius: 5px;
-    width: 600px;
-    text-align: center;
+#container {
+    display: flex;
+    flex-direction: column;
+    background-color: black;
     color: white;
+    font-family: Arial, Helvetica, sans-serif;
+    padding: 20px;
 }
 
-#anki-btns {
+#header {
     display: flex;
-    justify-content: center;
-    gap: 20px;
+    align-items: center;
 }
 
-#anki-btns button {
-    height: 30px;
-    width: 80px;
+button {
+    cursor: pointer;
 }
 
-#custom {
+#header img {
+    height: 40px;
+    width: 40px;
+}
+
+#header p {
+    font-size: large;
+    transform: translateY(4px);
+    margin-left: 6px;
+}
+
+#header button {
+    height: 36px;
+    width: 36px;
+    transform: translateY(4px);
     display: flex;
     justify-content: center;
     align-items: center;
-    gap: 10px;
+    margin-left: auto;
 }
 
+#header button img {
+    height: 30px;
+    width: 30px;
+}
 
-#close-btn {
-    float: right;
-    font-size: 30px;
-    cursor: pointer;
+#problem-list {
+    display: flex;
+    gap: 2px;
+}
+
+#problem-list button {
+    background-color: red;
 }

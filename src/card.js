@@ -1,7 +1,7 @@
 const popupHTML = `
 <div id="lre-overlay">
     <div id="lre-popup">
-        <span id="lre-close-btn">&times;</span>
+        <button id="lre-close-btn">&times;</button>
         <p>Great Job! You completed .problem name. difficulty.</p>
         <p>When would you like to repeat this problem?</p>
         <div id="lre-anki-btns">
@@ -49,12 +49,6 @@ function addStyling() {
             width: 80px;
         `;
     });
-    document.getElementById('lre-custom-input').style.cssText = `
-        display: flex; 
-        justify-content: center; 
-        align-items: center; 
-        gap: 10px;
-    `;
 }
 
 
@@ -74,7 +68,6 @@ function checkForAcceptedMessage() {
 
     const resultElement = document.querySelector('span[data-e2e-locator="submission-result"]');
     if (resultElement && resultElement.textContent.includes('Accepted')) {
-        console.log("Hellow orkd");
         lastProcessedSubmissionNumber = currentSubmissionNumber;
         console.log('Submission Accepted!');
         console.log(lastProcessedSubmissionNumber);
