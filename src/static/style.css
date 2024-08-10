@@ -21,7 +21,7 @@ a {
 }
 
 a:hover {
-    color: #ff8c00; /* Change to desired hover color */
+    color: #ff8c00;
 }
 
 #container {
@@ -61,9 +61,13 @@ a:hover {
 }
 
 #header button:hover {
-    background-color: #ff8c00;
+    background-color: green;
     border: none;
     border-radius: 10%;
+}
+
+#header button:hover img {
+    filter: invert(100%) sepia(100%) saturate(0%) hue-rotate(180deg) brightness(100%) contrast(100%);
 }
 
 #header button img {
@@ -83,11 +87,11 @@ a:hover {
 }
 
 .problem-list button:hover {
-    background-color: #ff8c00; /* Change background color on hover */
+    background-color: red;
 }
 
 .problem-list button:hover img {
-    filter: invert(100%) sepia(100%) saturate(0%) hue-rotate(180deg) brightness(100%) contrast(100%); /* Change icon color to white */
+    filter: invert(100%) sepia(100%) saturate(0%) hue-rotate(180deg) brightness(100%) contrast(100%);
 }
 
 #table-header > p,
@@ -100,6 +104,6 @@ a:hover {
 
 #table-header, .data {
     display: flex;
-    width: 400px;
+    width: 500px;
     background-color: #23222b;
 }
