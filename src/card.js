@@ -1,3 +1,11 @@
+let lastProcessedSubmissionNumber = null;
+const observer = new MutationObserver((mutations) => {
+    mutations.forEach((mutation) => {
+        if (mutation.addedNodes.length) {
+            checkForAcceptedMessage();
+        }
+    });
+});
 const popupHTML = `
 <div id="lre-overlay">
     <div id="lre-popup">
@@ -7,11 +15,16 @@ const popupHTML = `
             <button>3 Days</button>
             <button>7 Days</button>
             <button>14 Days</button>
+            <button>30 Days</button>
             <button>NEVER</button>
         </div>
     </div>
 </div>
 `;
+
+observer.observe(document.body, { childList: true, subtree: true });
+console.log("Checking for acceptance...")
+
 {/* <button id="lre-close-btn">&times;</button> */}
 {/* <div id="lre-custom">
     <input type="number" min="1" max="100" oninput="validateInput(this)">
@@ -93,9 +106,6 @@ function addStyling() {
     });
 }
 
-
-let lastProcessedSubmissionNumber = null;
-
 function getSubmissionNumberFromURL() {
     const urlPattern = /\/submissions\/(\d+)\//;
     const match = window.location.href.match(urlPattern);
@@ -120,14 +130,3 @@ function checkForAcceptedMessage() {
         addStyling();
     }
 }
-
-const observer = new MutationObserver((mutations) => {
-    mutations.forEach((mutation) => {
-        if (mutation.addedNodes.length) {
-            checkForAcceptedMessage();
-        }
-    });
-});
-
-observer.observe(document.body, { childList: true, subtree: true });
-console.log("Checking for acceptance...")
