@@ -1,34 +1,36 @@
 {
-    "manifest_version": 2,
-    "name": "LeetCode Repetition",
-    "description": "",
-    "version": "0.0.1",
-    "permissions": [
-      "cookies",
-      "activeTab",
-      "storage",
-      "https://leetcode.com/*"
-    ],
-    "background": {
-      "scripts": ["background.js"],
-      "persistent": false
-    },
-    "content_scripts": [
-        {
-          "matches": ["https://leetcode.com/problems/*"],
-          "js": ["./src/popup.js"]
-        },
-        {
-          "matches": ["https://leetcode.com/*"],
-          "js": ["./src/content.js"]
-        }
-    ],
-    "browser_action": {
-        "default_popup": "./src/extension.html",
-        "default_icon": {
-            "16": "./src/static/icon.svg",
-            "48": "./src/static/icon.svg",
-            "128": "./src/static/icon.svg"
-        }
-    }
+  "manifest_version": 3,
+  "name": "LeetCode Repetition",
+  "description": "",
+  "version": "0.0.1",
+  "permissions": [
+    "cookies",
+    "activeTab",
+    "storage"
+  ],
+  "host_permissions": [
+    "https://leetcode.com/*"
+  ],
+  "background": {
+    "scripts": ["./src/background.js"]
+  },
+  "content_scripts": [
+      {
+        "matches": ["https://leetcode.com/*"],
+        "js": ["./src/content.js"],
+        "run_at": "document_end"
+      },
+      {
+        "matches": ["https://leetcode.com/problems/*"],
+        "js": ["./src/popup.js"]
+      }
+  ],
+  "action": {
+      "default_popup": "./src/extension.html",
+      "default_icon": {
+          "16": "./src/static/icon.svg",
+          "48": "./src/static/icon.svg",
+          "128": "./src/static/icon.svg"
+      }
   }
+}

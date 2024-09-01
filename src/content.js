@@ -13,12 +13,7 @@ function getCookieValue(name) {
 function setLeetCodeUsername() {
     const username = getCookieValue('gr_last_sent_cs1');
     console.log(`Fetched username from cookie: ${username}`);
-    console.log(`Hello: ${username !== ""}`);
-    console.log(`hola: ${username}`);
-
-    // Send the variable to the background script
-    browser.runtime.sendMessage({ type: 'USERNAME', variable: username });
+    browser.runtime.sendMessage({ action: 'setUsername', type: 'USERNAME', data: username });
 }
-
 
 setLeetCodeUsername();

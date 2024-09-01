@@ -1,13 +1,14 @@
 let username = null;
 
 browser.runtime.onMessage.addListener((message, sender, sendResponse) => {
-    if (message.type === 'USERNAME') {
-        username = message.variable;
+    console.log("Received message:", message);
+    if (message.action === 'setUsername') {
+        console.log("Setting username:", message.data);
+        username = message.data;
+    } else if (message.action === 'getUsername') {
+        console.log("Sending username:", username);
+        sendResponse({ action: 'sendUsername', type: 'USERNAME', data: username });
     }
 });
 
-browser.runtime.onConnect.addListener((port) => {
-    if (port.name === 'extension') {
-        port.postMessage({ type: 'USERNAME', variable: username });
-    }
-});
+

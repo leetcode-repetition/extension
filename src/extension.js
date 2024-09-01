@@ -1,77 +1,35 @@
-// const refreshButton = document.getElementById('refresh-btn');
-// const deleteButton = document.getElementById('delete-btn');
+function handleButtonClick(action) {
+    console.log(`${action} button pressed`);
+    // TODO: Send to REST API
+}
 
-// if (refreshButton) {
-//     refreshButton.onclick = function() {
-//         console.log("Refresh leetcode username pressed");
-//         //send to REST API
-//     };
-// } else {
-//     console.log("Refresh button not found.");
-// }
+function setupButton(id, action) {
+    const button = document.getElementById(id);
+    if (button) {
+        button.onclick = () => handleButtonClick(action);
+    } else {
+        console.log(`${action} button not found.`);
+    }
+}
 
-// if (deleteButton) {
-//     deleteButton.onclick = function() {
-//         console.log("Delete problem button pressed");
-//         //send to REST API
-//     };
-// } else {
-//     console.log("Delete button not found.");
-// }
+function updateUsernameElement(username) {
+    if (username) {
+        document.getElementById('username').textContent = username;
+    } else {
+        document.getElementById('username').textContent = 'Login Needed!';
+    }
+}
 
-
-document.addEventListener('DOMContentLoaded', () => {
-    const port = browser.runtime.connect({ name: 'extension' });
-
-    port.onMessage.addListener((message) => {
-        if (message.type === 'USERNAME' && message.variable) {
-            document.getElementById('username').textContent = message.variable;
+function requestUsername() {
+    browser.runtime.sendMessage({ action: "getUsername" }, (response) => {
+        if (response && response.action === 'sendUsername') {
+            updateUsernameElement(response.data);
         }
     });
+}
+
+document.addEventListener('DOMContentLoaded', () => {
+    requestUsername();
+    setupButton('refresh-btn', 'Refresh leetcode username');
+    setupButton('delete-btn', 'Delete problem');
 });
-
-// function setLeetCodeUsername() {
-//     const username = getCookieValue('gr_last_sent_cs1');
-//     console.log(`Fetched username from cookie: ${username}`);
-//     console.log(`Hello: ${username !== ""}`);
-//     console.log(`hola: ${username}`);
-//     // const usernameTag = document.getElementById('username');
-
-//     // Send the variable to the popup
-//     browser.runtime.sendMessage({ variable: username });
-//     // Listen for messages in the popup context
-//     console.log("sent message");
-//     // popup.js
-//     document.addEventListener('DOMContentLoaded', () => {
-//         // Listen for messages in the popup context
-//         browser.runtime.onMessage.addListener((message, sender, sendResponse) => {
-//             if (message.variable) {
-//                 document.getElementById('username').textContent = message.variable;
-//             }
-//         });
-//     });
-
-//     // usernameTag.innerText = "Login1243";
-//     // usernameTag.innerHTML = username !== "" ? username : "Login Needed4564!";
-// }
-
-
-
-// window.onload = (e) => {
-// setLeetCodeUsername();
-// };
-
-// if (window.location.href.includes("https://leetcode.com/*")) {
-//     const variableFromWebpage = document.querySelector('selector-for-variable').textContent;
-
-//     // Send the variable to the popup
-//     chrome.runtime.sendMessage({ variable: variableFromWebpage });
-// }
-
-// // Listen for messages in the popup context
-// chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
-//     if (message.variable) {
-//         // Update the <p> tag in the popup
-//         document.querySelector('p').textContent = message.variable;
-//     }
-// });
