@@ -1,22 +1,6 @@
 let username = null;
 
 
-function setupDeleteButtons() {
-    const buttons = document.querySelectorAll('.delete-btn');
-    console.log(`Setting up ${buttons.length} delete button(s)`);
-    buttons.forEach(button => {
-        button.onclick = (e) => sendDeleteRequest(e);
-    });
-}
-
-function updateUsernameElement() {
-    if (username) {
-        document.getElementById('username').textContent = username;
-    } else {
-        document.getElementById('username').textContent = 'Login Needed!';
-    }
-}
-
 function createRowElement(row) {
     const dataRow = document.createElement('div');
     const dataDiv = document.createElement('div');
@@ -51,6 +35,22 @@ function createRowElement(row) {
     dataRow.appendChild(deleteBtn);
 }
 
+function setupDeleteButtons() {
+    const buttons = document.querySelectorAll('.delete-btn');
+    console.log(`Setting up ${buttons.length} delete button(s)`);
+    buttons.forEach(button => {
+        button.onclick = (e) => deleteRow(e);
+    });
+}
+
+function updateUsernameElement() {
+    if (username) {
+        document.getElementById('username').textContent = username;
+    } else {
+        document.getElementById('username').textContent = 'Login Needed!';
+    }
+}
+
 function sendToAPI(endpoint, method, data, element) {
     fetch(`http://localhost:8080/${endpoint}`, {
         method: method, // 'POST', 'GET', 'PUT', 'DELETE', etc.
@@ -63,9 +63,9 @@ function sendToAPI(endpoint, method, data, element) {
     .then(data => {
         console.log('Success:', data);
         if (endpoint === 'delete-row') {
-            handleDeleteResponse(element);
+            handleDeleteRowResponse(element);
         } else if (endpoint === 'get-table') {
-            handleProblemTableResponse(data, element);
+            handleGetProblemTableResponse(data, element);
         }
     })
     .catch((error) => {
@@ -73,7 +73,7 @@ function sendToAPI(endpoint, method, data, element) {
     });
 }
 
-function sendDeleteRequest(event) {
+function deleteRow(event) {
     console.log('Delete button pressed');
     const button = event.target.closest('.delete-btn');
     const dataRow = button.closest('.data-row');
@@ -86,21 +86,19 @@ function sendDeleteRequest(event) {
     sendToAPI('delete-row', 'DELETE', data, dataRow);
 }
 
-function handleDeleteResponse(element) {
+function handleDeleteRowResponse(element) {
     element.remove();
 }
 
-function sendProblemTableRequest() {
-    const table = document.getElementById('#problem-table');
+function getProblemTable() {
+    const table = document.getElementById('problem-table');
     const data = {
-        data: {
-            username: username,
-        }
+        username: username,
     };
     sendToAPI('get-table', 'GET', data, table);
 }
 
-function handleProblemTableResponse(data, element) {
+function handleGetProblemTableResponse(data, element) {
     for (let row of data["table"]) {
         element.appendChild(createRowElement(row));
     }
@@ -120,9 +118,9 @@ document.addEventListener('DOMContentLoaded', () => {
         console.log('LRE_USERNAME FOUND:', result.LRE_USERNAME);
         username = result.LRE_USERNAME;
         updateUsernameElement();
-        if (username) {
-            sendProblemTableRequest();
-        }
+        // if (username) {
+        //     getProblemTable();
+        // }
     });
 });
 

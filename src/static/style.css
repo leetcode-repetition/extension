@@ -50,9 +50,9 @@ a:hover {
     margin-left: 6px;
 }
 
-#header button {
-    height: 36px;
-    width: 36px;
+#refresh-btn {
+    height: 38px;
+    width: 38px;
     transform: translateY(4px);
     display: flex;
     justify-content: center;
@@ -60,37 +60,34 @@ a:hover {
     margin-left: auto;
 }
 
-#header button:hover {
+#refresh-btn:hover {
     background-color: green;
     border: none;
     border-radius: 10%;
 }
 
-#header button:hover img {
+#refresh-btn:hover img {
     filter: invert(100%) sepia(100%) saturate(0%) hue-rotate(180deg) brightness(100%) contrast(100%);
 }
 
-#header button img {
-    height: 30px;
-    width: 30px;
+#refresh-btn img {
+    height: 28px;
+    width: 28px;
+    margin-right: 1px;
 }
 
-.problem-list {
-    display: flex;
-}
-
-.problem-list button {
+#problem-table button {
     width: 38px;
     height: auto;
     background-color: #1c1c1c;
     border: 0;
 }
 
-.problem-list button:hover {
+#problem-table button:hover {
     background-color: red;
 }
 
-.problem-list button:hover img {
+#problem-table button:hover img {
     filter: invert(100%) sepia(100%) saturate(0%) hue-rotate(180deg) brightness(100%) contrast(100%);
 }
 
@@ -102,6 +99,10 @@ a:hover {
     padding: 4px;
 }
 
+#table-header {
+    margin-right: 38px;
+}
+
 #table-header, .data {
     display: flex;
     width: 500px;
@@ -111,3 +112,8 @@ a:hover {
 .data-row {
     display: flex;
 }
+
+.data:hover {
+    background-color: #3a3944;
+}
+
