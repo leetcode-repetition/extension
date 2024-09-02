@@ -13,7 +13,7 @@ function getCookieValue(name) {
 function setLeetCodeUsername() {
     const username = getCookieValue('gr_last_sent_cs1');
     console.log(`Fetched username from cookie: ${username}`);
-    browser.runtime.sendMessage({ action: 'setUsername', type: 'USERNAME', data: username });
+    browser.storage.local.set({ LRE_USERNAME: username });
 }
 
 setLeetCodeUsername();

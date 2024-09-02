@@ -107,3 +107,7 @@ a:hover {
     width: 500px;
     background-color: #23222b;
 }
+
+.data-row {
+    display: flex;
+}

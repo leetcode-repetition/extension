@@ -1,18 +1,15 @@
-function handleButtonClick(action) {
-    console.log(`${action} button pressed`);
-    // TODO: Send to REST API
+let username = null;
+
+
+function setupDeleteButtons() {
+    const buttons = document.querySelectorAll('.delete-btn');
+    console.log(`Setting up ${buttons.length} delete button(s)`);
+    buttons.forEach(button => {
+        button.onclick = (e) => sendDeleteRequest(e);
+    });
 }
 
-function setupButton(id, action) {
-    const button = document.getElementById(id);
-    if (button) {
-        button.onclick = () => handleButtonClick(action);
-    } else {
-        console.log(`${action} button not found.`);
-    }
-}
-
-function updateUsernameElement(username) {
+function updateUsernameElement() {
     if (username) {
         document.getElementById('username').textContent = username;
     } else {
@@ -20,16 +17,112 @@ function updateUsernameElement(username) {
     }
 }
 
-function requestUsername() {
-    browser.runtime.sendMessage({ action: "getUsername" }, (response) => {
-        if (response && response.action === 'sendUsername') {
-            updateUsernameElement(response.data);
+function createRowElement(row) {
+    const dataRow = document.createElement('div');
+    const dataDiv = document.createElement('div');
+    const link = document.createElement('a');
+    const difficulty = document.createElement('p');
+    const repeatOn = document.createElement('p');
+    const lastSubmission = document.createElement('p');
+    const numCompletions = document.createElement('p');
+    const deleteBtn = document.createElement('button');
+    const img = document.createElement('img');
+
+    dataRow.className = 'data-row';
+    dataDiv.className = 'data';
+    deleteBtn.className = 'delete-btn';
+    img.src = './static/trash.svg';
+
+    link.href = row.problemLink;
+    link.textContent = row.problemName;
+    difficulty.textContent = row.difficulty;
+    repeatOn.textContent = row.repeatOn;
+    lastSubmission.textContent = row.lastSubmission;
+    numCompletions.textContent = row.numCompletions;
+
+    dataDiv.appendChild(link);
+    dataDiv.appendChild(difficulty);
+    dataDiv.appendChild(repeatOn);
+    dataDiv.appendChild(lastSubmission);
+    dataDiv.appendChild(numCompletions);
+    deleteBtn.appendChild(img);
+
+    dataRow.appendChild(dataDiv);
+    dataRow.appendChild(deleteBtn);
+}
+
+function sendToAPI(endpoint, method, data, element) {
+    fetch(`http://localhost:8080/${endpoint}`, {
+        method: method, // 'POST', 'GET', 'PUT', 'DELETE', etc.
+        headers: {
+            'Content-Type': 'application/json'
+        },
+        body: JSON.stringify(data)
+    })
+    .then(response => response.json())
+    .then(data => {
+        console.log('Success:', data);
+        if (endpoint === 'delete-row') {
+            handleDeleteResponse(element);
+        } else if (endpoint === 'get-table') {
+            handleProblemTableResponse(data, element);
         }
+    })
+    .catch((error) => {
+        console.error('Error:', error);
     });
 }
 
-document.addEventListener('DOMContentLoaded', () => {
-    requestUsername();
-    setupButton('refresh-btn', 'Refresh leetcode username');
-    setupButton('delete-btn', 'Delete problem');
+function sendDeleteRequest(event) {
+    console.log('Delete button pressed');
+    const button = event.target.closest('.delete-btn');
+    const dataRow = button.closest('.data-row');
+    const data = {
+        data: {
+            username: username,
+            problemName: dataRow.querySelector('a').textContent,
+        }
+    };
+    sendToAPI('delete-row', 'DELETE', data, dataRow);
+}
+
+function handleDeleteResponse(element) {
+    element.remove();
+}
+
+function sendProblemTableRequest() {
+    const table = document.getElementById('#problem-table');
+    const data = {
+        data: {
+            username: username,
+        }
+    };
+    sendToAPI('get-table', 'GET', data, table);
+}
+
+function handleProblemTableResponse(data, element) {
+    for (let row of data["table"]) {
+        element.appendChild(createRowElement(row));
+    }
+    setupDeleteButtons();
+}
+
+browser.storage.onChanged.addListener((changes, area) => {
+    if (area === 'local' && 'LRE_USERNAME' in changes) {
+        username = changes.LRE_USERNAME.newValue;
+        updateUsernameElement(username);
+    }
 });
+
+document.addEventListener('DOMContentLoaded', () => {
+    console.log('DOMContentLoaded event fired');
+    browser.storage.local.get('LRE_USERNAME').then((result) => {
+        console.log('LRE_USERNAME FOUND:', result.LRE_USERNAME);
+        username = result.LRE_USERNAME;
+        updateUsernameElement();
+        if (username) {
+            sendProblemTableRequest();
+        }
+    });
+});
+
