@@ -11,6 +11,9 @@
   "host_permissions": [
     "https://leetcode.com/*"
   ],
+  "background": {
+    "scripts": ["./src/background.js"]
+  },
   "content_scripts": [
       {
         "matches": ["https://leetcode.com/*"],

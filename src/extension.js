@@ -17,12 +17,12 @@ function createRowElement(row) {
     deleteBtn.className = 'delete-btn';
     img.src = './static/trash.svg';
 
-    link.href = row.problemLink;
-    link.textContent = row.problemName;
+    link.href = row.link;
+    link.textContent = row.title;
     difficulty.textContent = row.difficulty;
     repeatOn.textContent = row.repeatOn;
     lastSubmission.textContent = row.lastSubmission;
-    numCompletions.textContent = row.numCompletions;
+    numCompletions.textContent = row.numberCompletions;
 
     dataDiv.appendChild(link);
     dataDiv.appendChild(difficulty);
@@ -52,13 +52,20 @@ function updateUsernameElement() {
 }
 
 function sendToAPI(endpoint, method, data, element) {
-    fetch(`http://localhost:8080/${endpoint}`, {
-        method: method, // 'POST', 'GET', 'PUT', 'DELETE', etc.
+    let url = `http://localhost:8080/${endpoint}`;
+    fetchOptions = {
+        method: method,
         headers: {
             'Content-Type': 'application/json'
         },
-        body: JSON.stringify(data)
-    })
+    };
+    if (method !== 'GET') {
+        fetchOptions.body = JSON.stringify(data);
+    } else {
+        url += `?username=${encodeURIComponent(data.username)}`;
+    }
+
+    fetch(url, fetchOptions)
     .then(response => response.json())
     .then(data => {
         console.log('Success:', data);
@@ -87,25 +94,36 @@ function deleteRow(event) {
 }
 
 function handleDeleteRowResponse(element) {
+    console.log('Deleting row');
     element.remove();
 }
 
 function getProblemTable() {
     const table = document.getElementById('problem-table');
-    const data = {
-        username: username,
-    };
-    sendToAPI('get-table', 'GET', data, table);
+    console.log('Getting problem table for user:', username);
+    sendToAPI('get-table', 'GET', {username: username}, table);
 }
 
 function handleGetProblemTableResponse(data, element) {
-    for (let row of data["table"]) {
-        element.appendChild(createRowElement(row));
+    console.log(data.error ? `Error: ${data.error}` : 'Success:', data);
+    if (data.error || data.isEmpty) {
+        element.innerHTML = data.error ? 
+            '<p>Error fetching data. Please try refreshing!</p>' : 
+            '<p>No problems found. Complete some problems to populate the table!</p>';
+        return;
     }
+
+    const table = document.createDocumentFragment();
+    data.table.forEach(row => table.appendChild(createRowElement(row)));
+
+    element.innerHTML = '';
+    element.appendChild(table);
     setupDeleteButtons();
 }
 
+
 browser.storage.onChanged.addListener((changes, area) => {
+    console.log('Storage changed:', changes, area);
     if (area === 'local' && 'LRE_USERNAME' in changes) {
         username = changes.LRE_USERNAME.newValue;
         updateUsernameElement(username);

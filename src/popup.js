@@ -1,4 +1,5 @@
 const ANKI_INTERVALS = [1, 3, 7, 14, 30];
+let lastProcessedSubmissionNumber = null;
 
 const createPopupHTML = () => `
   <div id="lre-overlay">
@@ -12,7 +13,36 @@ const createPopupHTML = () => `
   </div>
 `;
 
-const applyStyles = () => {
+const getProblemURL = () => {
+  const match = window.location.href.match(/(https:\/\/leetcode\.com\/problems\/[^/]+)/);
+  return match ? `${match[1]}/description` : null;
+};
+
+const getProblemNameFromURL = () => {
+  const match = window.location.href.match(/problems\/([^/]+)/);
+  return match ? match[1] : null;
+};
+
+const getSubmissionNumberFromURL = () => {
+  const match = window.location.href.match(/\/submissions\/(\d+)\//);
+  return match ? match[1] : null;
+};
+
+function handleButtonClick(button) {
+  console.log(`Button clicked: ${button.innerText}`);
+  browser.storage.local.get('LRE_USERNAME').then((result) => {
+    browser.runtime.sendMessage({ action: 'completeProblem', data: {
+      username: result.LRE_USERNAME,
+      problemLink: getProblemURL(),
+      problemName: getProblemNameFromURL(),
+      repeatIn: button.innerText,
+      time: new Date().getTime()
+    }});
+  });
+}
+
+
+function applyStyles() {
   const styles = {
     'lre-overlay': `
       position: fixed; 
@@ -55,18 +85,13 @@ const applyStyles = () => {
     button.addEventListener('mouseover', () => button.style.backgroundColor = '#ff8c00');
     button.addEventListener('mouseout', () => button.style.backgroundColor = '#23222b');
     button.addEventListener('click', () => {
-      console.log(`Repeat problem in: ${button.innerText}`);
       document.getElementById('lre-overlay').style.display = 'none';
+      handleButtonClick(button);
     });
   });
 };
 
-const getSubmissionNumberFromURL = () => {
-  const match = window.location.href.match(/\/submissions\/(\d+)\//);
-  return match ? match[1] : null;
-};
-
-const checkForAcceptedMessage = () => {
+function checkForAcceptedMessage () {
   const currentSubmissionNumber = getSubmissionNumberFromURL();
   if (!currentSubmissionNumber || currentSubmissionNumber === lastProcessedSubmissionNumber) return;
 
@@ -82,7 +107,6 @@ const checkForAcceptedMessage = () => {
   }
 };
 
-let lastProcessedSubmissionNumber = null;
 const observer = new MutationObserver(mutations => {
   mutations.forEach(mutation => {
     if (mutation.addedNodes.length) {
@@ -90,6 +114,5 @@ const observer = new MutationObserver(mutations => {
     }
   });
 });
-
 observer.observe(document.body, { childList: true, subtree: true });
 console.log("Checking for acceptance...");
