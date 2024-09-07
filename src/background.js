@@ -1,13 +1,18 @@
 let user = null;
 
 class User {
-  constructer(username) {
+  constructor(username) {
     this.username = username;
-    this.sessionId = generateSessionId();
+    this.sessionId = this.generateSessionId();
     this.completedProblems = [];
   }
+  
   generateSessionId() {
-    return Math.random().toString(36).substring(2, 15);
+    return (
+      Math.random().toString(36).substring(2, 15) +
+      Math.random().toString(36).substring(2, 15) +
+      Math.random().toString(36).substring(2, 15)
+    );
   }
 }
 
@@ -43,19 +48,16 @@ function sendToAPI(endpoint, method, data) {
     });
 }
 
-function transformProblemData(data) {
-  const problemData = {
-    problemLink: data.problemLink,
-    problemName: data.problemName,
-    repeatIn: data.repeatIn,
-    time: data.time,
-  };
-  return problemData;
-}
-
 function updateUserCompletedProblems(problem) {
-  user.completedProblems.push(transformProblemData(problem));
-  sendToAPI(`update-row?${user.username}`, 'POST', problem);
+  currentLeetCodeProblem = new LeetCodeProblem(
+    problem.problemLink,
+    problem.problemName,
+    problem.repeatIn,
+    problem.time
+  );
+  console.log('Problem Data:', currentLeetCodeProblem);
+  user.completedProblems.push(currentLeetCodeProblem);
+  sendToAPI(`update-row?${user.username}`, 'POST', currentLeetCodeProblem);
 }
 
 function initializeUser(username) {
@@ -70,8 +72,10 @@ browser.runtime.onMessage.addListener((message, sender, sendResponse) => {
   console.log('Received message:', message);
   if (message.action === 'initializeUser') {
     initializeUser(message.data);
-  } else if (message.action === 'problemSubmissionAccepted') {
+  } else if (message.action === 'popupButtonClicked') {
     updateUserCompletedProblems(message.data);
+  } else if (message.action === 'getUsername') {
+    sendResponse(user.username);
   }
 });
 

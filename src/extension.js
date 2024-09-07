@@ -120,22 +120,25 @@ function handleGetProblemTableResponse(data, element) {
   setupDeleteButtons();
 }
 
-browser.storage.onChanged.addListener((changes, area) => {
-  console.log('Storage changed:', changes, area);
-  if (area === 'local' && 'LRE_USERNAME' in changes) {
-    username = changes.LRE_USERNAME.newValue;
-    updateUsernameElement(username);
+document.addEventListener('DOMContentLoaded', () => {
+  console.log('DOMContentLoaded event fired');
+  if (!username) {
+    browser.runtime.sendMessage({ action: 'getUsername' }, (response) => {
+      username = response;
+      updateUsernameElement();
+      if (username) {
+        getProblemTable();
+      }
+    });
   }
 });
 
-document.addEventListener('DOMContentLoaded', () => {
-  console.log('DOMContentLoaded event fired');
-  browser.storage.local.get('LRE_USERNAME').then((result) => {
-    console.log('LRE_USERNAME FOUND:', result.LRE_USERNAME);
-    username = result.LRE_USERNAME;
+browser.runtime.onMessage.addListener((message, sender, sendResponse) => {
+  console.log('Received message:', message);
+  if (message.action === 'updateUsername') {
+    username = message.data;
     updateUsernameElement();
-    // if (username) {
-    //     getProblemTable();
-    // }
-  });
+  } else if (message.action === 'addTable') {
+    handleGetProblemTableResponse()
+  }
 });

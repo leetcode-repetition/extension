@@ -1,5 +1,5 @@
 const ANKI_INTERVALS = [1, 3, 7, 14, 30];
-let lastProcessedSubmissionNumber = null;
+let currentProblemData = null;
 
 const createPopupHTML = () => `
   <div id="lre-overlay">
@@ -12,39 +12,6 @@ const createPopupHTML = () => `
     </div>
   </div>
 `;
-
-const getProblemURL = () => {
-  const match = window.location.href.match(
-    /(https:\/\/leetcode\.com\/problems\/[^/]+)/
-  );
-  return match ? `${match[1]}/description` : null;
-};
-
-const getProblemNameFromURL = () => {
-  const match = window.location.href.match(/problems\/([^/]+)/);
-  return match ? match[1] : null;
-};
-
-const getSubmissionNumberFromURL = () => {
-  const match = window.location.href.match(/\/submissions\/(\d+)\//);
-  return match ? match[1] : null;
-};
-
-function handleButtonClick(button) {
-  console.log(`Button clicked: ${button.innerText}`);
-  browser.storage.local.get('LRE_USERNAME').then((result) => {
-    browser.runtime.sendMessage({
-      action: 'completeProblem',
-      data: {
-        username: result.LRE_USERNAME,
-        problemLink: getProblemURL(),
-        problemName: getProblemNameFromURL(),
-        repeatIn: button.innerText,
-        time: new Date().getTime(),
-      },
-    });
-  });
-}
 
 function applyStyles() {
   const styles = {
@@ -101,26 +68,13 @@ function applyStyles() {
   });
 }
 
-function checkForAcceptedMessage() {
-  const currentSubmissionNumber = getSubmissionNumberFromURL();
-  if (
-    !currentSubmissionNumber ||
-    currentSubmissionNumber === lastProcessedSubmissionNumber
-  )
-    return;
-
-  const resultElement = document.querySelector(
-    'span[data-e2e-locator="submission-result"]'
-  );
-  if (resultElement && resultElement.textContent.includes('Accepted')) {
-    lastProcessedSubmissionNumber = currentSubmissionNumber;
-    console.log('Submission Accepted!', lastProcessedSubmissionNumber);
-
-    const popupContainer = document.createElement('div');
-    popupContainer.innerHTML = createPopupHTML();
-    document.body.appendChild(popupContainer);
-    applyStyles();
-  }
+function handleButtonClick(button) {
+  console.log(`Button clicked: ${button.innerText}`);
+  currentProblemData['repeatIn'] = button.innerText;
+  browser.runtime.sendMessage({
+    action: 'popupButtonClicked',
+    data: currentProblemData,
+  });
 }
 
 (function () {
@@ -144,6 +98,10 @@ function checkForAcceptedMessage() {
               responseData.status_msg === 'Accepted'
             ) {
               console.log('Submission accepted:', responseData);
+              const popupContainer = document.createElement('div');
+              popupContainer.innerHTML = createPopupHTML();
+              document.body.appendChild(popupContainer);
+              applyStyles();
             }
             return response;
           });
@@ -164,22 +122,13 @@ function checkForAcceptedMessage() {
               const reader = new FileReader();
               reader.onloadend = function () {
                 const questionData = JSON.parse(reader.result).data.question;
-                const problemData = {
+                currentProblemData = {
                   title: questionData.title,
                   titleSlug: questionData.titleSlug,
                   difficulty: questionData.difficulty,
+                  time: new Date().getTime(),
                 };
-                console.log('Problem Data:', problemData);
-                browser.runtime.sendMessage({
-                  action: 'problemSubmissionAccepted',
-                  data: {
-                    problemLink: `https://leetcode.com/problems/${problemData.titleSlug}`,
-                    problemTitle: problemData.title,
-                    problemTitleSlug: problemData.titleSlug,
-                    repeatIn: '1',
-                    time: new Date().getTime(),
-                  },
-                });
+                console.log('Problem Data:', currentProblemData);
               };
               reader.readAsText(this.response);
             });
@@ -208,5 +157,3 @@ const observer = new MutationObserver((mutations) => {
 
 observer.observe(document.body, { childList: true, subtree: true });
 console.log('Checking for acceptance...');
-
-// change how i check for submission

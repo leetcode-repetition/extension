@@ -3,9 +3,10 @@ function setLeetCodeUsername() {
   console.log(`Fetched globalData: ${globalData}`);
 
   if (globalData) {
+    const username = globalData.userStatus.username;
     browser.runtime.sendMessage({
       action: 'initializeUser',
-      data: globalData.userStatus.username,
+      data: username,
     });
   } else {
     console.log('GLOBAL_DATA not found in local storage');
