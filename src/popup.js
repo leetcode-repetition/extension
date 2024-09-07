@@ -170,6 +170,16 @@ function checkForAcceptedMessage() {
                   difficulty: questionData.difficulty,
                 };
                 console.log('Problem Data:', problemData);
+                browser.runtime.sendMessage({
+                  action: 'problemSubmissionAccepted',
+                  data: {
+                    problemLink: `https://leetcode.com/problems/${problemData.titleSlug}`,
+                    problemTitle: problemData.title,
+                    problemTitleSlug: problemData.titleSlug,
+                    repeatIn: '1',
+                    time: new Date().getTime(),
+                  },
+                });
               };
               reader.readAsText(this.response);
             });

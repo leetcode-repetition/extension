@@ -3,9 +3,10 @@ function setLeetCodeUsername() {
   console.log(`Fetched globalData: ${globalData}`);
 
   if (globalData) {
-    const username = globalData.userStatus.username;
-    console.log('Setting LRE_USERNAME to:', username);
-    browser.storage.local.set({ LRE_USERNAME: username });
+    browser.runtime.sendMessage({
+      action: 'initializeUser',
+      data: globalData.userStatus.username,
+    });
   } else {
     console.log('GLOBAL_DATA not found in local storage');
   }
