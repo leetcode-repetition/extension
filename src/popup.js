@@ -125,6 +125,7 @@ function checkForAcceptedMessage() {
 
 (function () {
   const script = document.createElement('script');
+
   script.textContent = `
     (${function () {
       const originalFetch = window.fetch;
@@ -134,6 +135,7 @@ function checkForAcceptedMessage() {
       function interceptFetch(url, init) {
         if (url.match(/\/submissions\/detail\/\d+\/check\//)) {
           console.log('Fetch intercepted:', url);
+
           return originalFetch(url, init).then(async (response) => {
             const clonedResponse = response.clone();
             const responseData = await clonedResponse.json();
@@ -168,10 +170,6 @@ function checkForAcceptedMessage() {
                   difficulty: questionData.difficulty,
                 };
                 console.log('Problem Data:', problemData);
-                window.postMessage(
-                  { type: 'questionTitleResponse', data: problemData },
-                  '*'
-                );
               };
               reader.readAsText(this.response);
             });
@@ -185,18 +183,9 @@ function checkForAcceptedMessage() {
       XMLHttpRequest.prototype.send = interceptXHRSend;
     }})();
   `;
+
   (document.head || document.documentElement).appendChild(script);
   script.remove();
-
-  window.addEventListener('message', function (event) {
-    if (event.data.type === 'questionTitleResponse') {
-      browser.storage.local.set({ currentProblemData: event.data.data });
-      browser.runtime.sendMessage({
-        action: 'problemDataIntercepted',
-        data: event.data.data,
-      });
-    }
-  });
 })();
 
 const observer = new MutationObserver((mutations) => {
