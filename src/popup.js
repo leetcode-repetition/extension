@@ -6,7 +6,7 @@ const createPopupHTML = () => `
     <div id="lre-popup">
       <p>Great Job! When would you like to repeat this problem?</p><br>
       <div id="lre-anki-btns">
-        ${ANKI_INTERVALS.map((interval) => `<button>${interval} Day${interval > 1 ? "s" : ""}</button>`).join("")}
+        ${ANKI_INTERVALS.map((interval) => `<button>${interval} Day${interval > 1 ? 's' : ''}</button>`).join('')}
         <button>NEVER</button>
       </div>
     </div>
@@ -15,7 +15,7 @@ const createPopupHTML = () => `
 
 const getProblemURL = () => {
   const match = window.location.href.match(
-    /(https:\/\/leetcode\.com\/problems\/[^/]+)/,
+    /(https:\/\/leetcode\.com\/problems\/[^/]+)/
   );
   return match ? `${match[1]}/description` : null;
 };
@@ -32,9 +32,9 @@ const getSubmissionNumberFromURL = () => {
 
 function handleButtonClick(button) {
   console.log(`Button clicked: ${button.innerText}`);
-  browser.storage.local.get("LRE_USERNAME").then((result) => {
+  browser.storage.local.get('LRE_USERNAME').then((result) => {
     browser.runtime.sendMessage({
-      action: "completeProblem",
+      action: 'completeProblem',
       data: {
         username: result.LRE_USERNAME,
         problemLink: getProblemURL(),
@@ -48,7 +48,7 @@ function handleButtonClick(button) {
 
 function applyStyles() {
   const styles = {
-    "lre-overlay": `
+    'lre-overlay': `
       position: fixed; 
       inset: 0; 
       background: rgba(0, 0, 0, 0.6);
@@ -57,7 +57,7 @@ function applyStyles() {
       align-items: center;
       z-index: 9998;
     `,
-    "lre-popup": `
+    'lre-popup': `
       z-index: 9999;
       background: #1c1c1c; 
       padding: 20px; 
@@ -67,7 +67,7 @@ function applyStyles() {
       text-align: center; 
       color: white;
     `,
-    "lre-anki-btns": `
+    'lre-anki-btns': `
       display: flex;
       justify-content: center;
       gap: 20px;
@@ -78,7 +78,7 @@ function applyStyles() {
     document.getElementById(id).style.cssText = style;
   });
 
-  document.querySelectorAll("#lre-anki-btns button").forEach((button) => {
+  document.querySelectorAll('#lre-anki-btns button').forEach((button) => {
     button.style.cssText = `
       height: 30px; 
       width: 80px;
@@ -87,15 +87,15 @@ function applyStyles() {
       background-color: #23222b;
     `;
     button.addEventListener(
-      "mouseover",
-      () => (button.style.backgroundColor = "#ff8c00"),
+      'mouseover',
+      () => (button.style.backgroundColor = '#ff8c00')
     );
     button.addEventListener(
-      "mouseout",
-      () => (button.style.backgroundColor = "#23222b"),
+      'mouseout',
+      () => (button.style.backgroundColor = '#23222b')
     );
-    button.addEventListener("click", () => {
-      document.getElementById("lre-overlay").remove();
+    button.addEventListener('click', () => {
+      document.getElementById('lre-overlay').remove();
       handleButtonClick(button);
     });
   });
@@ -110,13 +110,13 @@ function checkForAcceptedMessage() {
     return;
 
   const resultElement = document.querySelector(
-    'span[data-e2e-locator="submission-result"]',
+    'span[data-e2e-locator="submission-result"]'
   );
-  if (resultElement && resultElement.textContent.includes("Accepted")) {
+  if (resultElement && resultElement.textContent.includes('Accepted')) {
     lastProcessedSubmissionNumber = currentSubmissionNumber;
-    console.log("Submission Accepted!", lastProcessedSubmissionNumber);
+    console.log('Submission Accepted!', lastProcessedSubmissionNumber);
 
-    const popupContainer = document.createElement("div");
+    const popupContainer = document.createElement('div');
     popupContainer.innerHTML = createPopupHTML();
     document.body.appendChild(popupContainer);
     applyStyles();
@@ -124,7 +124,7 @@ function checkForAcceptedMessage() {
 }
 
 (function () {
-  const script = document.createElement("script");
+  const script = document.createElement('script');
   script.textContent = `
     (${function () {
       const originalFetch = window.fetch;
@@ -133,15 +133,15 @@ function checkForAcceptedMessage() {
 
       function interceptFetch(url, init) {
         if (url.match(/\/submissions\/detail\/\d+\/check\//)) {
-          console.log("Fetch intercepted:", url);
+          console.log('Fetch intercepted:', url);
           return originalFetch(url, init).then(async (response) => {
             const clonedResponse = response.clone();
             const responseData = await clonedResponse.json();
             if (
-              responseData.state === "SUCCESS" &&
-              responseData.status_msg === "Accepted"
+              responseData.state === 'SUCCESS' &&
+              responseData.status_msg === 'Accepted'
             ) {
-              console.log("Submission accepted:", responseData);
+              console.log('Submission accepted:', responseData);
             }
             return response;
           });
@@ -155,10 +155,10 @@ function checkForAcceptedMessage() {
       }
 
       function interceptXHRSend() {
-        if (this._url.includes("/graphql/") && arguments[0]) {
+        if (this._url.includes('/graphql/') && arguments[0]) {
           const requestBody = JSON.parse(arguments[0]);
-          if (requestBody.operationName === "questionTitle") {
-            this.addEventListener("load", function () {
+          if (requestBody.operationName === 'questionTitle') {
+            this.addEventListener('load', function () {
               const reader = new FileReader();
               reader.onloadend = function () {
                 const questionData = JSON.parse(reader.result).data.question;
@@ -167,10 +167,10 @@ function checkForAcceptedMessage() {
                   titleSlug: questionData.titleSlug,
                   difficulty: questionData.difficulty,
                 };
-                console.log("Problem Data:", problemData);
+                console.log('Problem Data:', problemData);
                 window.postMessage(
-                  { type: "questionTitleResponse", data: problemData },
-                  "*",
+                  { type: 'questionTitleResponse', data: problemData },
+                  '*'
                 );
               };
               reader.readAsText(this.response);
@@ -188,16 +188,17 @@ function checkForAcceptedMessage() {
   (document.head || document.documentElement).appendChild(script);
   script.remove();
 
-  window.addEventListener("message", function (event) {
-    if (event.data.type === "questionTitleResponse") {
+  window.addEventListener('message', function (event) {
+    if (event.data.type === 'questionTitleResponse') {
       browser.storage.local.set({ currentProblemData: event.data.data });
       browser.runtime.sendMessage({
-        action: "problemDataIntercepted",
+        action: 'problemDataIntercepted',
         data: event.data.data,
       });
     }
   });
 })();
+
 const observer = new MutationObserver((mutations) => {
   mutations.forEach((mutation) => {
     if (mutation.addedNodes.length) {
@@ -205,7 +206,8 @@ const observer = new MutationObserver((mutations) => {
     }
   });
 });
+
 observer.observe(document.body, { childList: true, subtree: true });
-console.log("Checking for acceptance...");
+console.log('Checking for acceptance...');
 
 // change how i check for submission
