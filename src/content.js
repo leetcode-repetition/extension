@@ -1,19 +1,14 @@
-function getCookieValue(name) {
-    const cookies = document.cookie.split(';');
-    for (let cookie of cookies) {
-        cookie = cookie.trim();
-        if (cookie.includes(name)) {
-            const value = cookie.split("=")[1];
-            return value;
-        }
-    }
-    return null;
-}
-
 function setLeetCodeUsername() {
-    const username = getCookieValue('gr_last_sent_cs1');
-    console.log(`Fetched username from cookie: ${username}`);
+  const globalData = JSON.parse(localStorage.getItem("GLOBAL_DATA:value"));
+  console.log(`Fetched globalData: ${globalData}`);
+
+  if (globalData) {
+    const username = globalData.userStatus.username;
+    console.log("Setting LRE_USERNAME to:", username);
     browser.storage.local.set({ LRE_USERNAME: username });
+  } else {
+    console.log("GLOBAL_DATA not found in local storage");
+  }
 }
 
 setLeetCodeUsername();
