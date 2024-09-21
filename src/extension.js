@@ -1,8 +1,8 @@
 let username = null;
 
 function createRowElement(row) {
-  const dataRow = document.createElement('div');
-  const dataDiv = document.createElement('div');
+  const problemDiv = document.createElement('div');
+  const problemDataDiv = document.createElement('div');
   const link = document.createElement('a');
   const difficulty = document.createElement('p');
   const repeatOn = document.createElement('p');
@@ -11,8 +11,8 @@ function createRowElement(row) {
   const deleteBtn = document.createElement('button');
   const img = document.createElement('img');
 
-  dataRow.className = 'data-row';
-  dataDiv.className = 'data';
+  problemDiv.className = 'problem';
+  problemDataDiv.className = 'data';
   deleteBtn.className = 'delete-btn';
   img.src = './static/trash.svg';
 
@@ -23,15 +23,15 @@ function createRowElement(row) {
   lastSubmission.textContent = row.lastSubmission;
   numCompletions.textContent = row.numberCompletions;
 
-  dataDiv.appendChild(link);
-  dataDiv.appendChild(difficulty);
-  dataDiv.appendChild(repeatOn);
-  dataDiv.appendChild(lastSubmission);
-  dataDiv.appendChild(numCompletions);
+  problemDataDiv.appendChild(link);
+  problemDataDiv.appendChild(difficulty);
+  problemDataDiv.appendChild(repeatOn);
+  problemDataDiv.appendChild(lastSubmission);
+  problemDataDiv.appendChild(numCompletions);
   deleteBtn.appendChild(img);
 
-  dataRow.appendChild(dataDiv);
-  dataRow.appendChild(deleteBtn);
+  problemDiv.appendChild(problemDataDiv);
+  problemDiv.appendChild(deleteBtn);
 }
 
 function setupDeleteButtons() {
@@ -50,95 +50,82 @@ function updateUsernameElement() {
   }
 }
 
-function sendToAPI(endpoint, method, data, element) {
-  let url = `http://localhost:8080/${endpoint}`;
-  fetchOptions = {
-    method: method,
-    headers: {
-      'Content-Type': 'application/json',
-    },
-  };
-  if (method !== 'GET') {
-    fetchOptions.body = JSON.stringify(data);
-  } else {
-    url += `?username=${encodeURIComponent(data.username)}`;
-  }
-
-  fetch(url, fetchOptions)
-    .then((response) => response.json())
-    .then((data) => {
-      console.log('Success:', data);
-      if (endpoint === 'delete-row') {
-        handleDeleteRowResponse(element);
-      } else if (endpoint === 'get-table') {
-        handleGetProblemTableResponse(data, element);
-      }
-    })
-    .catch((error) => {
-      console.error('Error:', error);
-    });
-}
-
-function deleteRow(event) {
-  console.log('Delete button pressed');
-  const button = event.target.closest('.delete-btn');
-  const dataRow = button.closest('.data-row');
-  const data = {
-    data: {
-      username: username,
-      problemName: dataRow.querySelector('a').textContent,
-    },
-  };
-  sendToAPI('delete-row', 'DELETE', data, dataRow);
-}
-
-function handleDeleteRowResponse(element) {
-  console.log('Deleting row');
+function deleteRowElement(element) {
+  console.log('Deleting row element');
   element.remove();
 }
 
-function getProblemTable() {
-  const table = document.getElementById('problem-table');
-  console.log('Getting problem table for user:', username);
-  sendToAPI('get-table', 'GET', { username: username }, table);
-}
-
-function handleGetProblemTableResponse(data, element) {
-  console.log(data.error ? `Error: ${data.error}` : 'Success:', data);
-  if (data.error || data.isEmpty) {
-    element.innerHTML = data.error
-      ? '<p>Error fetching data. Please try refreshing!</p>'
-      : '<p>No problems found. Complete some problems to populate the table!</p>';
-    return;
-  }
+function createTableElement() {
+  console.log('Creating table element');
+  element = document.getElementById('problem-table');
 
   const table = document.createDocumentFragment();
   data.table.forEach((row) => table.appendChild(createRowElement(row)));
 
   element.innerHTML = '';
   element.appendChild(table);
+
   setupDeleteButtons();
 }
 
-document.addEventListener('DOMContentLoaded', () => {
-  console.log('DOMContentLoaded event fired');
-  if (!username) {
-    browser.runtime.sendMessage({ action: 'getUsername' }, (response) => {
-      username = response;
-      updateUsernameElement();
-      if (username) {
-        getProblemTable();
+function postMessagePromise(message) {
+  return new Promise((resolve, reject) => {
+    browser.runtime.sendMessage(message, (response) => {
+      if (response && response.error) {
+        reject(new Error(response.error));
+      } else {
+        resolve(response);
       }
     });
-  }
-});
+  });
+}
 
-browser.runtime.onMessage.addListener((message, sender, sendResponse) => {
-  console.log('Received message:', message);
-  if (message.action === 'updateUsername') {
-    username = message.data;
+async function deleteRow(event) {
+  console.log('Delete button pressed');
+  const problemRow = event.target.closest('.delete-btn').closest('.problem');
+  const problemName = problemRow.querySelector('a').textContent;
+
+  try {
+    await postMessagePromise({
+      action: 'sendToAPI',
+      data: {
+        endpoint: `delete-row?username=${username}&problemName=${problemName}`,
+        method: 'DELETE',
+      },
+    });
+    deleteRowElement(problemRow);
+  } catch (error) {
+    console.error('Error deleting row:', error);
+    return;
+  }
+}
+
+async function getProblemTable() {
+  console.log('Getting problem table');
+  try {
+    const response = await postMessagePromise({
+      action: 'sendToAPI',
+      data: {
+        endpoint: `get-table?username=${username}`,
+        method: 'GET',
+      },
+    });
+    createTableElement();
+  } catch (error) {
+    console.error('Error getting problem table:', error);
+    return;
+  }
+}
+
+document.addEventListener('DOMContentLoaded', async () => {
+  console.log('DOMContentLoaded event fired');
+  if (!username) {
+    username = await new Promise(resolve => {
+      browser.runtime.sendMessage({ action: 'getUsername' }, resolve);
+    });
     updateUsernameElement();
-  } else if (message.action === 'addTable') {
-    handleGetProblemTableResponse()
+    if (username) {
+      await getProblemTable();
+    }
   }
 });

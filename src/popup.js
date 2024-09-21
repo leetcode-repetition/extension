@@ -98,7 +98,10 @@ function handleButtonClick(button) {
               responseData.status_msg === 'Accepted'
             ) {
               console.log('Submission accepted:', responseData);
-              window.postMessage({ type: 'submissionAccepted', data: responseData}, '*');
+              window.postMessage(
+                { type: 'submissionAccepted', data: responseData },
+                '*'
+              );
             }
             return response;
           });
@@ -126,7 +129,10 @@ function handleButtonClick(button) {
                   time: new Date().getTime(),
                 };
                 console.log('Problem Data:', problemData);
-                window.postMessage({ type: 'setCurrentProblemData', data: problemData }, '*');
+                window.postMessage(
+                  { type: 'setCurrentProblemData', data: problemData },
+                  '*'
+                );
               };
               reader.readAsText(this.response);
             });
@@ -145,7 +151,7 @@ function handleButtonClick(button) {
   script.remove();
 })();
 
-window.addEventListener('message', function(event) {
+window.addEventListener('message', function (event) {
   if (event.data.type === 'setCurrentProblemData') {
     currentProblemData = event.data.data;
     console.log('Current Problem Data:', currentProblemData);

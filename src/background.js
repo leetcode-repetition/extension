@@ -6,7 +6,7 @@ class User {
     this.sessionId = this.generateSessionId();
     this.completedProblems = [];
   }
-  
+
   generateSessionId() {
     return (
       Math.random().toString(36).substring(2, 15) +
@@ -25,7 +25,7 @@ class LeetCodeProblem {
   }
 }
 
-function sendToAPI(endpoint, method, data) {
+async function sendToAPI(endpoint, method, data) {
   //change this to the actual endpoint in the future
   let url = `http://localhost:8080/${endpoint}`;
   fetchOptions = {
@@ -39,12 +39,19 @@ function sendToAPI(endpoint, method, data) {
   }
 
   fetch(url, fetchOptions)
-    .then((response) => response.json())
+    .then((response) => {
+      if (!response.ok) {
+        throw new Error(`HTTP error! status: ${response.status}`);
+      }
+      return response.json();
+    })
     .then((data) => {
       console.log('Success:', data);
+      return data;
     })
     .catch((error) => {
       console.error('Error:', error);
+      throw error;
     });
 }
 
@@ -77,6 +84,15 @@ browser.runtime.onMessage.addListener((message, sender, sendResponse) => {
     updateUserCompletedProblems(message.data);
   } else if (message.action === 'getUsername') {
     sendResponse(user.username);
+  } else if (message.action === 'sendToAPI') {
+    sendToAPI(message.data.endpoint, message.data.method, message.data.data)
+      .then((result) => {
+        sendResponse({ status: 'success', data: result });
+      })
+      .catch((error) => {
+        sendResponse({ status: 'error', message: error.message });
+      });
+    return true;
   }
 });
 
