@@ -17,15 +17,17 @@ class User {
 }
 
 class LeetCodeProblem {
-  constructor(problemLink, problemName, repeatIn, time) {
-    this.problemLink = problemLink;
-    this.problemName = problemName;
+  constructor(link, title, titleSlug, lastCompletion, repeatIn) {
+    this.link = link;
+    this.title = title;
+    this.titleSlug = titleSlug;
+    this.difficulty = difficulty;
+    this.lastCompletion = lastCompletion;
     this.repeatIn = repeatIn;
-    this.time = time;
   }
 }
 
-async function sendToAPI(endpoint, method, data) {
+async function sendToAPI(endpoint, method, requestData) {
   //change this to the actual endpoint in the future
   let url = `http://localhost:8080/${endpoint}`;
   fetchOptions = {
@@ -34,8 +36,8 @@ async function sendToAPI(endpoint, method, data) {
       'Content-Type': 'application/json',
     },
   };
-  if (method !== 'GET') {
-    fetchOptions.body = JSON.stringify(data);
+  if (requestData) {
+    fetchOptions.body = JSON.stringify(requestData);
   }
 
   fetch(url, fetchOptions)
@@ -45,9 +47,9 @@ async function sendToAPI(endpoint, method, data) {
       }
       return response.json();
     })
-    .then((data) => {
-      console.log('Success:', data);
-      return data;
+    .then((responseData) => {
+      console.log('Success:', responseData);
+      return responseData;
     })
     .catch((error) => {
       console.error('Error:', error);
@@ -57,15 +59,17 @@ async function sendToAPI(endpoint, method, data) {
 
 function updateUserCompletedProblems(problem) {
   console.log("Updating user's completed problems");
-  // currentLeetCodeProblem = new LeetCodeProblem(
-  //   problem.problemLink,
-  //   problem.problemName,
-  //   problem.repeatIn,
-  //   problem.time
-  // );
-  // console.log('Problem Data:', currentLeetCodeProblem);
-  // user.completedProblems.push(currentLeetCodeProblem);
-  // sendToAPI(`update-row?${user.username}`, 'POST', currentLeetCodeProblem);
+  const completedLeetCodeProblem = new LeetCodeProblem(
+    problem.link,
+    problem.title,
+    problem.titleSlug,
+    problem.difficulty,
+    problem.lastCompletion,
+    problem.repeatIn
+  );
+  console.log('Problem Data:', completedLeetCodeProblem);
+  user.completedProblems.push(completedLeetCodeProblem);
+  sendToAPI(`update-row?${user.username}`, 'POST', completedLeetCodeProblem);
 }
 
 function initializeUser(username) {
@@ -80,7 +84,7 @@ browser.runtime.onMessage.addListener((message, sender, sendResponse) => {
   console.log('Received message:', message);
   if (message.action === 'initializeUser') {
     initializeUser(message.data);
-  } else if (message.action === 'problemSolved') {
+  } else if (message.action === 'problemCompleted') {
     updateUserCompletedProblems(message.data);
   } else if (message.action === 'getUsername') {
     sendResponse(user.username);

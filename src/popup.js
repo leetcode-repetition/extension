@@ -70,9 +70,10 @@ function applyStyles() {
 
 function handleButtonClick(button) {
   console.log(`Button clicked: ${button.innerText}`);
+  currentProblemData['lastCompletion'] = new Date().toISOString();
   currentProblemData['repeatIn'] = button.innerText;
   browser.runtime.sendMessage({
-    action: 'problemSolved',
+    action: 'problemCompleted',
     data: currentProblemData,
   });
 }
@@ -123,10 +124,11 @@ function handleButtonClick(button) {
               reader.onloadend = function () {
                 const questionData = JSON.parse(reader.result).data.question;
                 problemData = {
+                  link:
+                    'https://leetcode.com/problems/' + questionData.titleSlug,
                   title: questionData.title,
                   titleSlug: questionData.titleSlug,
                   difficulty: questionData.difficulty,
-                  time: new Date().getTime(),
                 };
                 console.log('Problem Data:', problemData);
                 window.postMessage(

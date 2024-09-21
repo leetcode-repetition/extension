@@ -1,5 +1,21 @@
 let username = null;
 
+function updateUsernameElement() {
+  if (username) {
+    document.getElementById('username').textContent = username;
+  } else {
+    document.getElementById('username').textContent = 'Login Needed!';
+  }
+}
+
+function setupDeleteButtons() {
+  const buttons = document.querySelectorAll('.delete-btn');
+  console.log(`Setting up ${buttons.length} delete button(s)`);
+  buttons.forEach((button) => {
+    button.onclick = (e) => deleteRow(e);
+  });
+}
+
 function createRowElement(row) {
   const problemDiv = document.createElement('div');
   const problemDataDiv = document.createElement('div');
@@ -34,27 +50,6 @@ function createRowElement(row) {
   problemDiv.appendChild(deleteBtn);
 }
 
-function setupDeleteButtons() {
-  const buttons = document.querySelectorAll('.delete-btn');
-  console.log(`Setting up ${buttons.length} delete button(s)`);
-  buttons.forEach((button) => {
-    button.onclick = (e) => deleteRow(e);
-  });
-}
-
-function updateUsernameElement() {
-  if (username) {
-    document.getElementById('username').textContent = username;
-  } else {
-    document.getElementById('username').textContent = 'Login Needed!';
-  }
-}
-
-function deleteRowElement(element) {
-  console.log('Deleting row element');
-  element.remove();
-}
-
 function createTableElement() {
   console.log('Creating table element');
   element = document.getElementById('problem-table');
@@ -68,6 +63,11 @@ function createTableElement() {
   setupDeleteButtons();
 }
 
+function deleteRowElement(element) {
+  console.log('Deleting row element');
+  element.remove();
+}
+
 function postMessagePromise(message) {
   return new Promise((resolve, reject) => {
     browser.runtime.sendMessage(message, (response) => {
@@ -78,6 +78,23 @@ function postMessagePromise(message) {
       }
     });
   });
+}
+
+async function getProblemTable() {
+  console.log('Getting problem table');
+  try {
+    const response = await postMessagePromise({
+      action: 'sendToAPI',
+      data: {
+        endpoint: `get-table?username=${username}`,
+        method: 'GET',
+      },
+    });
+    createTableElement();
+  } catch (error) {
+    console.error('Error getting problem table:', error);
+    return;
+  }
 }
 
 async function deleteRow(event) {
@@ -100,27 +117,10 @@ async function deleteRow(event) {
   }
 }
 
-async function getProblemTable() {
-  console.log('Getting problem table');
-  try {
-    const response = await postMessagePromise({
-      action: 'sendToAPI',
-      data: {
-        endpoint: `get-table?username=${username}`,
-        method: 'GET',
-      },
-    });
-    createTableElement();
-  } catch (error) {
-    console.error('Error getting problem table:', error);
-    return;
-  }
-}
-
 document.addEventListener('DOMContentLoaded', async () => {
   console.log('DOMContentLoaded event fired');
   if (!username) {
-    username = await new Promise(resolve => {
+    username = await new Promise((resolve) => {
       browser.runtime.sendMessage({ action: 'getUsername' }, resolve);
     });
     updateUsernameElement();
