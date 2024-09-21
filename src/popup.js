@@ -72,7 +72,7 @@ function handleButtonClick(button) {
   console.log(`Button clicked: ${button.innerText}`);
   currentProblemData['repeatIn'] = button.innerText;
   browser.runtime.sendMessage({
-    action: 'popupButtonClicked',
+    action: 'problemSolved',
     data: currentProblemData,
   });
 }
@@ -98,10 +98,7 @@ function handleButtonClick(button) {
               responseData.status_msg === 'Accepted'
             ) {
               console.log('Submission accepted:', responseData);
-              const popupContainer = document.createElement('div');
-              popupContainer.innerHTML = createPopupHTML();
-              document.body.appendChild(popupContainer);
-              applyStyles();
+              window.postMessage({ type: 'submissionAccepted', data: responseData}, '*');
             }
             return response;
           });
@@ -122,13 +119,14 @@ function handleButtonClick(button) {
               const reader = new FileReader();
               reader.onloadend = function () {
                 const questionData = JSON.parse(reader.result).data.question;
-                currentProblemData = {
+                problemData = {
                   title: questionData.title,
                   titleSlug: questionData.titleSlug,
                   difficulty: questionData.difficulty,
                   time: new Date().getTime(),
                 };
-                console.log('Problem Data:', currentProblemData);
+                console.log('Problem Data:', problemData);
+                window.postMessage({ type: 'setCurrentProblemData', data: problemData }, '*');
               };
               reader.readAsText(this.response);
             });
@@ -147,12 +145,16 @@ function handleButtonClick(button) {
   script.remove();
 })();
 
-const observer = new MutationObserver((mutations) => {
-  mutations.forEach((mutation) => {
-    if (mutation.addedNodes.length) {
-      checkForAcceptedMessage();
-    }
-  });
+window.addEventListener('message', function(event) {
+  if (event.data.type === 'setCurrentProblemData') {
+    currentProblemData = event.data.data;
+    console.log('Current Problem Data:', currentProblemData);
+  } else if (event.data.type === 'submissionAccepted') {
+    const popupContainer = document.createElement('div');
+    popupContainer.innerHTML = createPopupHTML();
+    document.body.appendChild(popupContainer);
+    applyStyles();
+  }
 });
 
 observer.observe(document.body, { childList: true, subtree: true });

@@ -49,15 +49,16 @@ function sendToAPI(endpoint, method, data) {
 }
 
 function updateUserCompletedProblems(problem) {
-  currentLeetCodeProblem = new LeetCodeProblem(
-    problem.problemLink,
-    problem.problemName,
-    problem.repeatIn,
-    problem.time
-  );
-  console.log('Problem Data:', currentLeetCodeProblem);
-  user.completedProblems.push(currentLeetCodeProblem);
-  sendToAPI(`update-row?${user.username}`, 'POST', currentLeetCodeProblem);
+  console.log("Updating user's completed problems");
+  // currentLeetCodeProblem = new LeetCodeProblem(
+  //   problem.problemLink,
+  //   problem.problemName,
+  //   problem.repeatIn,
+  //   problem.time
+  // );
+  // console.log('Problem Data:', currentLeetCodeProblem);
+  // user.completedProblems.push(currentLeetCodeProblem);
+  // sendToAPI(`update-row?${user.username}`, 'POST', currentLeetCodeProblem);
 }
 
 function initializeUser(username) {
@@ -72,7 +73,7 @@ browser.runtime.onMessage.addListener((message, sender, sendResponse) => {
   console.log('Received message:', message);
   if (message.action === 'initializeUser') {
     initializeUser(message.data);
-  } else if (message.action === 'popupButtonClicked') {
+  } else if (message.action === 'problemSolved') {
     updateUserCompletedProblems(message.data);
   } else if (message.action === 'getUsername') {
     sendResponse(user.username);
