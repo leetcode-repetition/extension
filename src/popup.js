@@ -68,10 +68,26 @@ function applyStyles() {
   });
 }
 
+function getRepeatDate(dateString, daysLater) {
+  console.log(`Getting repeat date for ${dateString} + ${daysLater} days`);
+  const date = new Date(dateString);
+  date.setDate(date.getDate() + parseInt(daysLater, 10));
+  return `${date.getMonth() + 1}/${date.getDate()}/${date.getFullYear().toString().slice(-2)}`;
+}
+
 function handleButtonClick(button) {
   console.log(`Button clicked: ${button.innerText}`);
-  currentProblemData['lastCompletion'] = new Date().toISOString();
-  currentProblemData['repeatIn'] = button.innerText;
+  if (button.innerText === 'NEVER') {
+    return;
+  }
+
+  const lastCompletion = new Date().toLocaleString().split(',')[0];
+  currentProblemData['lastCompletion'] = lastCompletion;
+  currentProblemData['repeatDate'] = getRepeatDate(
+    lastCompletion,
+    button.innerText.split(' ')[0]
+  );
+
   browser.runtime.sendMessage({
     action: 'problemCompleted',
     data: currentProblemData,
@@ -126,7 +142,6 @@ function handleButtonClick(button) {
                 problemData = {
                   link:
                     'https://leetcode.com/problems/' + questionData.titleSlug,
-                  title: questionData.title,
                   titleSlug: questionData.titleSlug,
                   difficulty: questionData.difficulty,
                 };

@@ -4,7 +4,7 @@ class User {
   constructor(username) {
     this.username = username;
     this.sessionId = this.generateSessionId();
-    this.completedProblems = [];
+    this.completedProblems = new Set();
   }
 
   generateSessionId() {
@@ -17,13 +17,13 @@ class User {
 }
 
 class LeetCodeProblem {
-  constructor(link, title, titleSlug, lastCompletion, repeatIn) {
+  constructor(link, titleSlug, difficulty, repeatDate, lastCompletion) {
     this.link = link;
-    this.title = title;
     this.titleSlug = titleSlug;
     this.difficulty = difficulty;
+    this.repeatDate = repeatDate;
     this.lastCompletion = lastCompletion;
-    this.repeatIn = repeatIn;
+    this.completedCount = 0;
   }
 }
 
@@ -58,25 +58,23 @@ async function sendToAPI(endpoint, method, requestData) {
 }
 
 function updateUserCompletedProblems(problem) {
-  console.log("Updating user's completed problems");
-  const completedLeetCodeProblem = new LeetCodeProblem(
-    problem.link,
-    problem.title,
-    problem.titleSlug,
-    problem.difficulty,
-    problem.lastCompletion,
-    problem.repeatIn
-  );
-  console.log('Problem Data:', completedLeetCodeProblem);
-  user.completedProblems.push(completedLeetCodeProblem);
-  sendToAPI(`update-row?${user.username}`, 'POST', completedLeetCodeProblem);
+  const completedProblem = {
+    link: problem.link,
+    titleSlug: problem.titleSlug,
+    difficulty: problem.difficulty,
+    repeatDate: problem.repeatDate,
+    lastCompletion: problem.lastCompletion,
+  };
+  console.log('Problem Data:', completedProblem);
+  // user.completedProblems.push(completedProblem);
+  sendToAPI(`insert-row?${user.username}`, 'POST', completedProblem);
 }
 
 function initializeUser(username) {
   if (!user && username) {
     user = new User(username);
     console.log('User initialized:', user);
-    // sendToAPI(`updateSessionId`, 'POST', {}); //this is where we will send the session id to the backend
+    // sendToAPI(`updateSessionId`, 'POST', {});
   }
 }
 
@@ -85,6 +83,7 @@ browser.runtime.onMessage.addListener((message, sender, sendResponse) => {
   if (message.action === 'initializeUser') {
     initializeUser(message.data);
   } else if (message.action === 'problemCompleted') {
+    console.log('Problem completed:', message.data);
     updateUserCompletedProblems(message.data);
   } else if (message.action === 'getUsername') {
     sendResponse(user.username);
