@@ -81,10 +81,10 @@ function handleButtonClick(button) {
     return;
   }
 
-  const lastCompletion = new Date().toLocaleString().split(',')[0];
-  currentProblemData['lastCompletion'] = lastCompletion;
+  const lastCompletionDate = new Date().toLocaleString().split(',')[0];
+  currentProblemData['lastCompletionDate'] = lastCompletionDate;
   currentProblemData['repeatDate'] = getRepeatDate(
-    lastCompletion,
+    lastCompletionDate,
     button.innerText.split(' ')[0]
   );
 

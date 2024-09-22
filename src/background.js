@@ -17,13 +17,12 @@ class User {
 }
 
 class LeetCodeProblem {
-  constructor(link, titleSlug, difficulty, repeatDate, lastCompletion) {
+  constructor(link, titleSlug, difficulty, repeatDate, lastCompletionDate) {
     this.link = link;
     this.titleSlug = titleSlug;
     this.difficulty = difficulty;
     this.repeatDate = repeatDate;
-    this.lastCompletion = lastCompletion;
-    this.completedCount = 0;
+    this.lastCompletionDate = lastCompletionDate;
   }
 }
 
@@ -63,7 +62,7 @@ function updateUserCompletedProblems(problem) {
     titleSlug: problem.titleSlug,
     difficulty: problem.difficulty,
     repeatDate: problem.repeatDate,
-    lastCompletion: problem.lastCompletion,
+    lastCompletionDate: problem.lastCompletionDate,
   };
   console.log('Problem Data:', completedProblem);
   // user.completedProblems.push(completedProblem);
