@@ -4,7 +4,7 @@ class User {
   constructor(username) {
     this.username = username;
     this.sessionId = this.generateSessionId();
-    this.completedProblems = new Set();
+    this.completedProblems = new Map();
   }
 
   generateSessionId() {
@@ -57,16 +57,24 @@ async function sendToAPI(endpoint, method, requestData) {
 }
 
 function updateUserCompletedProblems(problem) {
-  const completedProblem = {
-    link: problem.link,
-    titleSlug: problem.titleSlug,
-    difficulty: problem.difficulty,
-    repeatDate: problem.repeatDate,
-    lastCompletionDate: problem.lastCompletionDate,
-  };
+  const completedProblem = new LeetCodeProblem(
+    problem.link,
+    problem.titleSlug,
+    problem.difficulty,
+    problem.repeatDate,
+    problem.lastCompletionDate,
+  );
   console.log('Problem Data:', completedProblem);
-  // user.completedProblems.push(completedProblem);
-  sendToAPI(`insert-row?${user.username}`, 'POST', completedProblem);
+  console.log('User:', user.username);
+
+  sendToAPI(`insert-row?username=${user.username}`, 'POST', completedProblem)
+    .then((response) => {
+      console.log('Success:', response);
+      user.completedProblems.set(completedProblem.titleSlug, completedProblem);
+    })
+    .catch((error) => {
+      console.error('Error:', error);
+    });
 }
 
 function initializeUser(username) {

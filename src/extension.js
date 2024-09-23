@@ -58,6 +58,7 @@ function createRowElement(row) {
 function createTableElement(data) {
   console.log('Creating table element');
   const element = document.getElementById('problem-table');
+  console.log(data.table);
 
   if (data.table && data.table.length > 0) {
     const table = document.createDocumentFragment();
@@ -99,11 +100,10 @@ async function getProblemTable() {
         data: undefined,
       },
     });
-    console.log(response);
+    console.log("Response received:", response);
     createTableElement(response);
   } catch (error) {
     console.error('Error getting problem table:', error);
-    return;
   }
 }
 
