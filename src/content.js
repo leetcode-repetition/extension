@@ -1,16 +1,20 @@
 function setLeetCodeUsername() {
   const globalData = JSON.parse(localStorage.getItem('GLOBAL_DATA:value'));
-  console.log(`Fetched globalData: ${globalData}`);
 
-  if (globalData) {
-    const username = globalData.userStatus.username;
-    browser.runtime.sendMessage({
-      action: 'initializeUser',
-      data: username,
-    });
+  if (globalData && globalData.userStatus.username) {
+    let username = globalData.userStatus.username;
+    console.log('Setting username:', username);
+    browser.storage.local.set({ username: username });
+    return username;
   } else {
     console.log('GLOBAL_DATA not found in local storage');
+    return null;
   }
 }
 
-setLeetCodeUsername();
+browser.runtime.onMessage.addListener((message, sender, sendResponse) => {
+  console.log('Received message:', message);
+  if (message.action === 'setUsername') {
+    sendResponse(setLeetCodeUsername());
+  }
+});

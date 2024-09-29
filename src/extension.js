@@ -1,11 +1,17 @@
-let username = null;
-
-function updateUsernameElement() {
+function setUsernameElement(username) {
   if (username) {
     document.getElementById('username').textContent = username;
   } else {
     document.getElementById('username').textContent = 'Login Needed!';
   }
+}
+
+function setupRefreshButton() {
+  console.log('Setting up refresh button');
+  const refreshButton = document.getElementById('refresh-btn');
+  refreshButton.onclick = () => {
+    callGetUserInfo(true);
+  };
 }
 
 function setupDeleteButtons() {
@@ -26,7 +32,6 @@ function createRowElement(row) {
   const difficulty = document.createElement('p');
   const repeatDate = document.createElement('p');
   const lastCompletionDate = document.createElement('p');
-  const completedCount = document.createElement('p');
   const deleteBtn = document.createElement('button');
   const img = document.createElement('img');
 
@@ -40,13 +45,11 @@ function createRowElement(row) {
   difficulty.textContent = row.difficulty;
   repeatDate.textContent = row.repeatDate;
   lastCompletionDate.textContent = row.lastCompletionDate;
-  completedCount.textContent = row.completedCount;
 
   problemDataDiv.appendChild(link);
   problemDataDiv.appendChild(difficulty);
   problemDataDiv.appendChild(repeatDate);
   problemDataDiv.appendChild(lastCompletionDate);
-  problemDataDiv.appendChild(completedCount);
   deleteBtn.appendChild(img);
 
   problemDiv.appendChild(problemDataDiv);
@@ -55,17 +58,18 @@ function createRowElement(row) {
   return problemDiv;
 }
 
-function createTableElement(data) {
+function createTable(problems) {
   console.log('Creating table element');
   const element = document.getElementById('problem-table');
-  console.log(data.table);
+  console.log(problems);
 
-  if (data.table && data.table.length > 0) {
+  if (problems && problems.length > 0) {
     const table = document.createDocumentFragment();
-    data.table.forEach((row) => table.appendChild(createRowElement(row)));
+    problems.forEach((row) => table.appendChild(createRowElement(row)));
     element.innerHTML = '';
     element.appendChild(table);
     setupDeleteButtons();
+    setupRefreshButton();
   } else {
     element.innerHTML =
       '<p>No problems found. Complete problems to populate the table!</p>';
@@ -75,72 +79,51 @@ function createTableElement(data) {
 function deleteRowElement(element) {
   console.log('Deleting row element');
   element.remove();
-}
-
-function postMessagePromise(message) {
-  return new Promise((resolve, reject) => {
-    browser.runtime.sendMessage(message, (response) => {
-      if (response && response.error) {
-        reject(new Error(response.error));
-      } else {
-        resolve(response);
-      }
-    });
-  });
-}
-
-async function getProblemTable() {
-  console.log('Getting problem table');
-  try {
-    const response = await postMessagePromise({
-      action: 'sendToAPI',
-      data: {
-        endpoint: `get-table?username=${username}`,
-        method: 'GET',
-        data: undefined,
-      },
-    });
-    console.log("Response received:", response);
-    if (response.table) {
-      createTableElement(response);
-    } else {
-      console.error('Unexpected response format:', response);
-    }
-  } catch (error) {
-    console.error('Error getting problem table:', error);
+  const table = document.getElementById('problem-table');
+  if (table.children.length === 0) {
+    table.innerHTML =
+      '<p>No problems found. Complete problems to populate the table!</p>';
   }
 }
 
-async function deleteRow(event) {
+function deleteRow(event) {
   console.log('Delete button pressed');
   const problemRow = event.target.closest('.delete-btn').closest('.problem');
   const problemTitleSlug = problemRow.querySelector('a').textContent;
 
-  try {
-    await postMessagePromise({
-      action: 'sendToAPI',
-      data: {
-        endpoint: `delete-row?username=${username}&problemTitleSlug=${problemTitleSlug}`,
-        method: 'DELETE',
-        data: undefined,
-      },
+  browser.runtime
+    .sendMessage({
+      action: 'deleteRow',
+      titleSlug: problemTitleSlug,
+    })
+    .then(() => {
+      deleteRowElement(problemRow);
+    })
+    .catch((error) => {
+      console.error('Error deleting row:', error);
     });
-    deleteRowElement(problemRow);
-  } catch (error) {
-    console.error('Error deleting row:', error);
-    return;
-  }
+}
+
+function callGetUserInfo(shouldRefresh) {
+  console.log('Calling getUserInfo');
+  browser.runtime
+    .sendMessage({ action: 'getUserInfo', shouldRefresh: shouldRefresh })
+    .then((response) => {
+      console.log('Received response:', response);
+      if (!response) {
+        return;
+      }
+      setUsernameElement(response.username);
+      createTable(response.problems);
+    });
 }
 
 document.addEventListener('DOMContentLoaded', async () => {
   console.log('DOMContentLoaded event fired');
-  if (!username) {
-    username = await new Promise((resolve) => {
-      browser.runtime.sendMessage({ action: 'getUsername' }, resolve);
-    });
-    updateUsernameElement();
-    if (username) {
-      await getProblemTable();
-    }
-  }
+  callGetUserInfo(false);
+});
+
+window.addEventListener('unload', () => {
+  document.getElementById('problem-table').innerHTML =
+    '<p>No problems found. Complete problems to populate the table!</p>';
 });
