@@ -173,10 +173,20 @@ window.addEventListener('message', function (event) {
     currentProblemData = event.data.data;
     console.log('Current Problem Data:', currentProblemData);
   } else if (event.data.type === 'submissionAccepted') {
-    const popupContainer = document.createElement('div');
-    popupContainer.innerHTML = createPopupHTML();
-    document.body.appendChild(popupContainer);
-    applyStyles();
+    browser.runtime.sendMessage({
+      action: 'checkIfProblemCompletedInLastDay',
+      titleSlug: currentProblemData.titleSlug,
+    }).then((response) => {
+      if (!response.isCompleted) {
+        console.log('Problem not completed in the last day.');
+        const popupContainer = document.createElement('div');
+        popupContainer.innerHTML = createPopupHTML();
+        document.body.appendChild(popupContainer);
+        applyStyles();
+      } else {
+        console.log('Problem completed in the last day.');
+      }
+    });
   }
 });
 

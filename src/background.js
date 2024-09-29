@@ -65,13 +65,18 @@ function addUserCompletedProblem(problem) {
   sendToAPI(`insert-row?username=${user.username}`, 'POST', completedProblem)
     .then((response) => {
       console.log('Success:', response);
-      user.completedProblems.set(completedProblem.titleSlug, completedProblem);
+
+      const problemsArray = Array.from(user.completedProblems.values());
+      problemsArray.push(completedProblem);
+      const sortedProblems = problemsArray.sort((a, b) => new Date(a.repeatDate) - new Date(b.repeatDate));
+      user.completedProblems = new Map(sortedProblems.map(p => [p.titleSlug, p]));
+      
+      console.log('Updated problems:', user.completedProblems);
     })
     .catch((error) => {
       console.error('Error:', error);
     });
 }
-
 function deleteUserCompletedProblem(problemTitleSlug) {
   const endpoint = `delete-row?username=${user.username}&problemTitleSlug=${problemTitleSlug}`;
   sendToAPI(endpoint, 'DELETE', null)
@@ -103,30 +108,26 @@ async function setUserInfo() {
         async (response) => {
           const username = response;
           console.log('Received username:', username);
-          if (!username) {
-            console.log('Username not found');
-            user = null;
+          initializeUser(username);
+          if (!user) {
+            console.log('User not initialized');
             resolve();
             return;
           }
-          initializeUser(username);
           try {
-            const tableResponse = await sendToAPI(
-              `get-table?username=${user.username}`,
-              'GET',
-              null
-            );
-            user.completedProblems = new Map(
-              tableResponse.table.map((problem) => [
+            const tableResponse = await sendToAPI(`get-table?username=${user.username}`, 'GET', null);
+            const sortedProblems = tableResponse.table
+              .map(problem => new LeetCodeProblem(
+                problem.link,
                 problem.titleSlug,
-                new LeetCodeProblem(
-                  problem.link,
-                  problem.titleSlug,
-                  problem.difficulty,
-                  problem.repeatDate,
-                  problem.lastCompletionDate
-                ),
-              ])
+                problem.difficulty,
+                problem.repeatDate,
+                problem.lastCompletionDate
+              ))
+              .sort((a, b) => new Date(a.repeatDate) - new Date(b.repeatDate));
+
+            user.completedProblems = new Map(
+              sortedProblems.map(problem => [problem.titleSlug, problem])
             );
             console.log('Table Response:', user.completedProblems);
           } catch (error) {
@@ -138,7 +139,6 @@ async function setUserInfo() {
     });
   });
 }
-
 function getUserInfo(shouldRefresh) {
   return new Promise((resolve) => {
     if (!user || shouldRefresh) {
@@ -161,15 +161,31 @@ function getUserInfo(shouldRefresh) {
     }
   });
 }
+
+function checkIfProblemCompletedInLastDay(titleSlug) {
+  if (!user || !user.completedProblems.has(titleSlug)) {
+    return false;
+  }
+
+  const problem = user.completedProblems.get(titleSlug);
+  const lastCompletionDate = new Date(problem.lastCompletionDate);
+  const now = new Date();
+  const oneDayAgo = new Date(now.getTime() - 24 * 60 * 60 * 1000);
+
+  return lastCompletionDate > oneDayAgo;
+}
+
+
 browser.runtime.onMessage.addListener((message, sender, sendResponse) => {
   console.log('Received message:', message);
 
   if (message.action === 'getUserInfo') {
     console.log('user = ', user);
-    return getUserInfo(message.shouldRefresh).then((userInfo) => {
+    getUserInfo(message.shouldRefresh).then((userInfo) => {
       console.log('Sending user info:', userInfo);
-      return userInfo;
+      sendResponse(userInfo);
     });
+    return true; // This is important for asynchronous response
   } else if (message.action === 'problemCompleted') {
     console.log('Problem completed:', message.data);
     addUserCompletedProblem(message.data);
@@ -177,6 +193,11 @@ browser.runtime.onMessage.addListener((message, sender, sendResponse) => {
     console.log('Deleting row:', message.titleSlug);
     deleteUserCompletedProblem(message.titleSlug);
     sendResponse({ success: true });
+  } else if (message.action === 'checkIfProblemCompletedInLastDay') {
+    console.log('Checking if problem is already completed:', message.titleSlug);
+    sendResponse({
+      isCompleted: checkIfProblemCompletedInLastDay(message.titleSlug),
+    });
   }
   return true;
 });

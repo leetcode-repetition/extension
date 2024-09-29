@@ -46,6 +46,12 @@ function createRowElement(row) {
   repeatDate.textContent = row.repeatDate;
   lastCompletionDate.textContent = row.lastCompletionDate;
 
+  link.style.whiteSpace = 'nowrap';
+  link.style.overflow = 'hidden';
+  link.style.textOverflow = 'ellipsis';
+  link.style.maxWidth = '150px';
+  link.style.display = 'inline-block';
+
   problemDataDiv.appendChild(link);
   problemDataDiv.appendChild(difficulty);
   problemDataDiv.appendChild(repeatDate);
