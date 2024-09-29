@@ -101,7 +101,11 @@ async function getProblemTable() {
       },
     });
     console.log("Response received:", response);
-    createTableElement(response);
+    if (response.table) {
+      createTableElement(response);
+    } else {
+      console.error('Unexpected response format:', response);
+    }
   } catch (error) {
     console.error('Error getting problem table:', error);
   }

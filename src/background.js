@@ -26,10 +26,9 @@ class LeetCodeProblem {
   }
 }
 
-async function sendToAPI(endpoint, method, requestData) {
-  //change this to the actual endpoint in the future
+function sendToAPI(endpoint, method, requestData) {
   let url = `http://localhost:8080/${endpoint}`;
-  fetchOptions = {
+  let fetchOptions = {
     method: method,
     headers: {
       'Content-Type': 'application/json',
@@ -39,7 +38,7 @@ async function sendToAPI(endpoint, method, requestData) {
     fetchOptions.body = JSON.stringify(requestData);
   }
 
-  fetch(url, fetchOptions)
+  return fetch(url, fetchOptions)
     .then((response) => {
       if (!response.ok) {
         throw new Error(`HTTP error! status: ${response.status}`);
@@ -49,13 +48,8 @@ async function sendToAPI(endpoint, method, requestData) {
     .then((responseData) => {
       console.log('Success:', responseData);
       return responseData;
-    })
-    .catch((error) => {
-      console.error('Error:', error);
-      throw error;
     });
 }
-
 function updateUserCompletedProblems(problem) {
   const completedProblem = new LeetCodeProblem(
     problem.link,
@@ -95,12 +89,15 @@ browser.runtime.onMessage.addListener((message, sender, sendResponse) => {
   } else if (message.action === 'getUsername') {
     sendResponse(user.username);
   } else if (message.action === 'sendToAPI') {
+    console.log('Sending to API:', message);
     sendToAPI(message.data.endpoint, message.data.method, message.data.data)
-      .then((result) => {
-        sendResponse({ status: 'success', data: result });
+      .then(result => {
+        console.log('API response:', result);
+        sendResponse(result);
       })
-      .catch((error) => {
-        sendResponse({ status: 'error', message: error.message });
+      .catch(error => {
+        console.error('API error:', error);
+        sendResponse({ error: error.message });
       });
     return true;
   }
