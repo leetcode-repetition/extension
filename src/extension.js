@@ -10,6 +10,7 @@ function setupRefreshButton() {
   console.log('Setting up refresh button');
   const refreshButton = document.getElementById('refresh-btn');
   refreshButton.onclick = () => {
+    console.log('Refresh button clicked');
     callGetUserInfo(true);
   };
 }
@@ -68,6 +69,7 @@ function createTable(problems) {
   console.log('Creating table element');
   const element = document.getElementById('problem-table');
   console.log(problems);
+  setupRefreshButton();
 
   if (problems && problems.length > 0) {
     const table = document.createDocumentFragment();
@@ -75,7 +77,6 @@ function createTable(problems) {
     element.innerHTML = '';
     element.appendChild(table);
     setupDeleteButtons();
-    setupRefreshButton();
   } else {
     element.innerHTML =
       '<p>No problems found. Complete problems to populate the table!</p>';

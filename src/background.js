@@ -68,9 +68,13 @@ function addUserCompletedProblem(problem) {
 
       const problemsArray = Array.from(user.completedProblems.values());
       problemsArray.push(completedProblem);
-      const sortedProblems = problemsArray.sort((a, b) => new Date(a.repeatDate) - new Date(b.repeatDate));
-      user.completedProblems = new Map(sortedProblems.map(p => [p.titleSlug, p]));
-      
+      const sortedProblems = problemsArray.sort(
+        (a, b) => new Date(a.repeatDate) - new Date(b.repeatDate)
+      );
+      user.completedProblems = new Map(
+        sortedProblems.map((p) => [p.titleSlug, p])
+      );
+
       console.log('Updated problems:', user.completedProblems);
     })
     .catch((error) => {
@@ -115,19 +119,26 @@ async function setUserInfo() {
             return;
           }
           try {
-            const tableResponse = await sendToAPI(`get-table?username=${user.username}`, 'GET', null);
+            const tableResponse = await sendToAPI(
+              `get-table?username=${user.username}`,
+              'GET',
+              null
+            );
             const sortedProblems = tableResponse.table
-              .map(problem => new LeetCodeProblem(
-                problem.link,
-                problem.titleSlug,
-                problem.difficulty,
-                problem.repeatDate,
-                problem.lastCompletionDate
-              ))
+              .map(
+                (problem) =>
+                  new LeetCodeProblem(
+                    problem.link,
+                    problem.titleSlug,
+                    problem.difficulty,
+                    problem.repeatDate,
+                    problem.lastCompletionDate
+                  )
+              )
               .sort((a, b) => new Date(a.repeatDate) - new Date(b.repeatDate));
 
             user.completedProblems = new Map(
-              sortedProblems.map(problem => [problem.titleSlug, problem])
+              sortedProblems.map((problem) => [problem.titleSlug, problem])
             );
             console.log('Table Response:', user.completedProblems);
           } catch (error) {
@@ -174,7 +185,6 @@ function checkIfProblemCompletedInLastDay(titleSlug) {
 
   return lastCompletionDate > oneDayAgo;
 }
-
 
 browser.runtime.onMessage.addListener((message, sender, sendResponse) => {
   console.log('Received message:', message);
