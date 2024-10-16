@@ -81,6 +81,7 @@ function addUserCompletedProblem(problem) {
       console.error('Error:', error);
     });
 }
+
 function deleteUserCompletedProblem(problemTitleSlug) {
   const endpoint = `delete-row?username=${user.username}&problemTitleSlug=${problemTitleSlug}`;
   sendToAPI(endpoint, 'DELETE', null)
@@ -98,7 +99,7 @@ function initializeUser(username) {
   if (username) {
     user = new User(username);
     console.log('User initialized:', user);
-    // sendToAPI(`updateSessionId`, 'POST', {});
+    sendToAPI(`generate-key?username=${user.username}`, 'POST', {});
   }
 }
 
@@ -150,6 +151,7 @@ async function setUserInfo() {
     });
   });
 }
+
 function getUserInfo(shouldRefresh) {
   return new Promise((resolve) => {
     if (!user || shouldRefresh) {
