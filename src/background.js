@@ -1,30 +1,7 @@
+import publicKey from './public-key';
+import { User, LeetCodeProblem } from './models';
+
 let user = null;
-
-class User {
-  constructor(username) {
-    this.username = username;
-    this.sessionId = this.generateSessionId();
-    this.completedProblems = new Map();
-  }
-
-  generateSessionId() {
-    return (
-      Math.random().toString(36).substring(2, 15) +
-      Math.random().toString(36).substring(2, 15) +
-      Math.random().toString(36).substring(2, 15)
-    );
-  }
-}
-
-class LeetCodeProblem {
-  constructor(link, titleSlug, difficulty, repeatDate, lastCompletionDate) {
-    this.link = link;
-    this.titleSlug = titleSlug;
-    this.difficulty = difficulty;
-    this.repeatDate = repeatDate;
-    this.lastCompletionDate = lastCompletionDate;
-  }
-}
 
 async function sendToAPI(endpoint, method, requestData) {
   let url = `http://localhost:8080/${endpoint}`;
