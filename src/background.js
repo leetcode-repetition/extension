@@ -1,5 +1,5 @@
-import publicKey from './public-key';
-import { User, LeetCodeProblem } from './models';
+import publicKey from './utils/public-key';
+import { User, LeetCodeProblem } from './utils/models';
 
 let user = null;
 
