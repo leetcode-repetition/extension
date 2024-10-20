@@ -39,7 +39,7 @@ function createRowElement(row) {
   problemDiv.className = 'problem';
   problemDataDiv.className = 'data';
   deleteBtn.className = 'delete-btn';
-  img.src = './static/trash.svg';
+  img.src = './trash.svg';
 
   link.href = row.link;
   link.textContent = row.titleSlug;
