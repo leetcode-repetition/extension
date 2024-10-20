@@ -16,35 +16,36 @@ async function sendToAPI(endpoint, method, requestData) {
     fetchOptions.body = JSON.stringify(requestData);
   }
 
-  const response = await fetch(url, fetchOptions);
-  console.log(response);
-  console.log('Response status:', response.status);
-  console.log('Response headers:', Object.fromEntries(response.headers));
-  
-  if (response.status === 401) {
-    const challenge = response.headers.get('X-Challenge');
-    const token = response.headers.get('X-Challenge-Token');
-    console.log('Challenge:', challenge);
-    console.log('Token:', token);
-    
-    if (challenge && token) {
-      const solution = eval(`(function() { ${challenge} })()`);
-      console.log('Solution:', solution);
-      
-      fetchOptions.headers['X-Challenge-Token'] = token;
-      fetchOptions.headers['X-Challenge-Response'] = solution.toString();
-      return sendToAPI(endpoint, method, requestData);
+  while (true) {
+    const response = await fetch(url, fetchOptions);
+    console.log('Response status:', response.status);
+    console.log('Response headers:', Object.fromEntries(response.headers));
+
+    if (response.status === 401) {
+      const challenge = response.headers.get('X-Challenge');
+      const token = response.headers.get('X-Challenge-Token');
+      console.log('Challenge:', challenge);
+      console.log('Token:', token);
+
+      if (challenge && token) {
+        const solution = challenge.match(/\d+/g).reduce((acc, num) => acc * Number(num), 1);
+        console.log('Solution:', solution);
+
+        fetchOptions.headers['X-Challenge-Token'] = token;
+        fetchOptions.headers['X-Challenge-Response'] = solution.toString();
+        continue;
+      }
     }
+
+    if (!response.ok) {
+      throw new Error(`HTTP error! status: ${response.status}`);
+    }
+
+    const responseBody = await response.text();
+    console.log('Response body:', responseBody);
+
+    return JSON.parse(responseBody);
   }
-
-  if (!response.ok) {
-    throw new Error(`HTTP error! status: ${response.status}`);
-  }
-
-  const responseBody = await response.text();
-  console.log('Response body:', responseBody);
-
-  return JSON.parse(responseBody);
 }
 
 function addUserCompletedProblem(problem) {
