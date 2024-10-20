@@ -1,5 +1,4 @@
-import publicKey from './utils/public-key';
-import { User, LeetCodeProblem } from './utils/models';
+import { User, LeetCodeProblem } from './utils/models.js';
 
 let user = null;
 
@@ -10,22 +9,42 @@ async function sendToAPI(endpoint, method, requestData) {
     headers: {
       'Content-Type': 'application/json',
     },
+    credentials: 'include'
   };
+
   if (requestData) {
     fetchOptions.body = JSON.stringify(requestData);
   }
 
-  return fetch(url, fetchOptions)
-    .then((response) => {
-      if (!response.ok) {
-        throw new Error(`HTTP error! status: ${response.status}`);
-      }
-      return response.json();
-    })
-    .then((responseData) => {
-      console.log('Success:', responseData);
-      return responseData;
-    });
+  const response = await fetch(url, fetchOptions);
+  console.log(response);
+  console.log('Response status:', response.status);
+  console.log('Response headers:', Object.fromEntries(response.headers));
+  
+  if (response.status === 401) {
+    const challenge = response.headers.get('X-Challenge');
+    const token = response.headers.get('X-Challenge-Token');
+    console.log('Challenge:', challenge);
+    console.log('Token:', token);
+    
+    if (challenge && token) {
+      const solution = eval(`(function() { ${challenge} })()`);
+      console.log('Solution:', solution);
+      
+      fetchOptions.headers['X-Challenge-Token'] = token;
+      fetchOptions.headers['X-Challenge-Response'] = solution.toString();
+      return sendToAPI(endpoint, method, requestData);
+    }
+  }
+
+  if (!response.ok) {
+    throw new Error(`HTTP error! status: ${response.status}`);
+  }
+
+  const responseBody = await response.text();
+  console.log('Response body:', responseBody);
+
+  return JSON.parse(responseBody);
 }
 
 function addUserCompletedProblem(problem) {
@@ -76,7 +95,7 @@ function initializeUser(username) {
   if (username) {
     user = new User(username);
     console.log('User initialized:', user);
-    sendToAPI(`generate-key?username=${user.username}`, 'POST', {});
+    // sendToAPI(`generate-key?username=${user.username}`, 'POST', {});
   }
 }
 

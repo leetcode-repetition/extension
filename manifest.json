@@ -13,7 +13,8 @@
     "https://leetcode.com/*"
   ],
   "background": {
-    "scripts": ["./src/background.js"]
+    "scripts": ["./src/background.js"],
+    "type": "module"
   },
   "content_scripts": [
       {
@@ -28,7 +29,7 @@
       }
   ],
   "action": {
-      "default_popup": "./src/extension.html",
+      "default_popup": "./src/static/extension.html",
       "default_icon": {
           "16": "./src/static/icon.svg",
           "48": "./src/static/icon.svg",

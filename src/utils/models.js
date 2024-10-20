@@ -1,11 +1,11 @@
-class User {
+export class User {
   constructor(username) {
     this.username = username;
     this.completedProblems = new Map();
   }
 }
 
-class LeetCodeProblem {
+export class LeetCodeProblem {
   constructor(link, titleSlug, difficulty, repeatDate, lastCompletionDate) {
     this.link = link;
     this.titleSlug = titleSlug;
