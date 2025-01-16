@@ -9,7 +9,7 @@ async function sendToAPI(endpoint, method, requestData) {
     headers: {
       'Content-Type': 'application/json',
     },
-    credentials: 'include'
+    credentials: 'include',
   };
 
   if (requestData) {
@@ -20,22 +20,6 @@ async function sendToAPI(endpoint, method, requestData) {
     const response = await fetch(url, fetchOptions);
     console.log('Response status:', response.status);
     console.log('Response headers:', Object.fromEntries(response.headers));
-
-    if (response.status === 401) {
-      const challenge = response.headers.get('X-Challenge');
-      const token = response.headers.get('X-Challenge-Token');
-      console.log('Challenge:', challenge);
-      console.log('Token:', token);
-
-      if (challenge && token) {
-        const solution = challenge.match(/\d+/g).reduce((acc, num) => acc * Number(num), 1);
-        console.log('Solution:', solution);
-
-        fetchOptions.headers['X-Challenge-Token'] = token;
-        fetchOptions.headers['X-Challenge-Response'] = solution.toString();
-        continue;
-      }
-    }
 
     if (!response.ok) {
       throw new Error(`HTTP error! status: ${response.status}`);
@@ -191,7 +175,7 @@ browser.runtime.onMessage.addListener((message, sender, sendResponse) => {
   if (message.action === 'getUserInfo') {
     console.log('user = ', user);
     getUserInfo(message.shouldRefresh).then((userInfo) => {
-      console.log('Sending user info:', userInfo);
+      console.log('user info:', userInfo);
       sendResponse(userInfo);
     });
     return true; // This is important for asynchronous response

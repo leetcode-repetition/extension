@@ -1,12 +1,11 @@
-const ANKI_INTERVALS = [1, 3, 7, 14, 30];
-let currentProblemData = null;
+let currentProblemData = {};
 
 const createPopupHTML = () => `
   <div id="lre-overlay">
     <div id="lre-popup">
       <p>Great Job! When would you like to repeat this problem?</p><br>
       <div id="lre-anki-btns">
-        ${ANKI_INTERVALS.map((interval) => `<button>${interval} Day${interval > 1 ? 's' : ''}</button>`).join('')}
+        ${[1, 3, 7, 14, 30].map((interval) => `<button>${interval} Day${interval > 1 ? 's' : ''}</button>`).join('')}
         <button>NEVER</button>
       </div>
     </div>
@@ -61,10 +60,14 @@ function applyStyles() {
       'mouseout',
       () => (button.style.backgroundColor = '#23222b')
     );
-    button.addEventListener('click', () => {
-      document.getElementById('lre-overlay').remove();
-      handleButtonClick(button);
-    });
+    button.addEventListener(
+      'click',
+      () => {
+        document.getElementById('lre-overlay').remove();
+        handleButtonClick(button);
+      },
+      { once: true }
+    );
   });
 }
 
@@ -72,7 +75,11 @@ function getRepeatDate(dateString, daysLater) {
   console.log(`Getting repeat date for ${dateString} + ${daysLater} days`);
   const date = new Date(dateString);
   date.setDate(date.getDate() + parseInt(daysLater, 10));
-  return `${date.getMonth() + 1}/${date.getDate()}/${date.getFullYear().toString().slice(-2)}`;
+  return date.toLocaleDateString('en-US', {
+    month: 'numeric',
+    day: 'numeric',
+    year: '2-digit',
+  });
 }
 
 function handleButtonClick(button) {
@@ -101,7 +108,6 @@ function handleButtonClick(button) {
     (${function () {
       const originalFetch = window.fetch;
       const originalXHROpen = XMLHttpRequest.prototype.open;
-      const originalXHRSend = XMLHttpRequest.prototype.send;
 
       function interceptFetch(url, init) {
         if (url.match(/\/submissions\/detail\/\d+\/check\//)) {
@@ -110,19 +116,26 @@ function handleButtonClick(button) {
           return originalFetch(url, init).then(async (response) => {
             const clonedResponse = response.clone();
             const responseData = await clonedResponse.json();
+
             if (
               responseData.state === 'SUCCESS' &&
               responseData.status_msg === 'Accepted'
             ) {
               console.log('Submission accepted:', responseData);
               window.postMessage(
-                { type: 'submissionAccepted', data: responseData },
+                {
+                  type: 'submissionAccepted',
+                  data: responseData,
+                  url: window.location.href,
+                },
                 '*'
               );
             }
+
             return response;
           });
         }
+
         return originalFetch(url, init);
       }
 
@@ -131,36 +144,8 @@ function handleButtonClick(button) {
         return originalXHROpen.apply(this, arguments);
       }
 
-      function interceptXHRSend() {
-        if (this._url.includes('/graphql/') && arguments[0]) {
-          const requestBody = JSON.parse(arguments[0]);
-          if (requestBody.operationName === 'questionTitle') {
-            this.addEventListener('load', function () {
-              const reader = new FileReader();
-              reader.onloadend = function () {
-                const questionData = JSON.parse(reader.result).data.question;
-                problemData = {
-                  link:
-                    'https://leetcode.com/problems/' + questionData.titleSlug,
-                  titleSlug: questionData.titleSlug,
-                  difficulty: questionData.difficulty,
-                };
-                console.log('Problem Data:', problemData);
-                window.postMessage(
-                  { type: 'setCurrentProblemData', data: problemData },
-                  '*'
-                );
-              };
-              reader.readAsText(this.response);
-            });
-          }
-        }
-        return originalXHRSend.apply(this, arguments);
-      }
-
       window.fetch = interceptFetch;
       XMLHttpRequest.prototype.open = interceptXHROpen;
-      XMLHttpRequest.prototype.send = interceptXHRSend;
     }})();
   `;
 
@@ -169,10 +154,11 @@ function handleButtonClick(button) {
 })();
 
 window.addEventListener('message', function (event) {
-  if (event.data.type === 'setCurrentProblemData') {
-    currentProblemData = event.data.data;
-    console.log('Current Problem Data:', currentProblemData);
-  } else if (event.data.type === 'submissionAccepted') {
+  if (event.data.type === 'submissionAccepted') {
+    currentProblemData['titleSlug'] =
+      event.data.url.match(/problems\/([^\/]+)/)[1];
+    console.log('Submitted Problem!!');
+    console.log('Problem Title Slug: ' + currentProblemData.titleSlug);
     browser.runtime
       .sendMessage({
         action: 'checkIfProblemCompletedInLastDay',
