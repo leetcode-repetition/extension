@@ -75,11 +75,7 @@ function getRepeatDate(dateString, daysLater) {
   console.log(`Getting repeat date for ${dateString} + ${daysLater} days`);
   const date = new Date(dateString);
   date.setDate(date.getDate() + parseInt(daysLater, 10));
-  return date.toLocaleDateString('en-US', {
-    month: 'numeric',
-    day: 'numeric',
-    year: '2-digit',
-  });
+  return `${date.getMonth() + 1}/${date.getDate()}/${date.getFullYear().toString().slice(-2)}`;
 }
 
 function handleButtonClick(button) {
@@ -89,8 +85,8 @@ function handleButtonClick(button) {
   }
 
   const lastCompletionDate = new Date().toLocaleString().split(',')[0];
-  currentProblemData['lastCompletionDate'] = lastCompletionDate;
-  currentProblemData['repeatDate'] = getRepeatDate(
+  currentProblemData.lastCompletionDate = lastCompletionDate;
+  currentProblemData.repeatDate = getRepeatDate(
     lastCompletionDate,
     button.innerText.split(' ')[0]
   );
@@ -155,8 +151,11 @@ function handleButtonClick(button) {
 
 window.addEventListener('message', function (event) {
   if (event.data.type === 'submissionAccepted') {
-    currentProblemData['titleSlug'] =
+    currentProblemData.titleSlug =
       event.data.url.match(/problems\/([^\/]+)/)[1];
+    currentProblemData.link = event.data.url.match(
+      /(https:\/\/leetcode\.com\/problems\/[^\/]+)/
+    )[1];
     console.log('Submitted Problem!!');
     console.log('Problem Title Slug: ' + currentProblemData.titleSlug);
     browser.runtime

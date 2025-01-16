@@ -6,10 +6,9 @@ export class User {
 }
 
 export class LeetCodeProblem {
-  constructor(link, titleSlug, difficulty, repeatDate, lastCompletionDate) {
+  constructor(link, titleSlug, repeatDate, lastCompletionDate) {
     this.link = link;
     this.titleSlug = titleSlug;
-    this.difficulty = difficulty;
     this.repeatDate = repeatDate;
     this.lastCompletionDate = lastCompletionDate;
   }

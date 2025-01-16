@@ -30,7 +30,6 @@ function createRowElement(row) {
   const problemDiv = document.createElement('div');
   const problemDataDiv = document.createElement('div');
   const link = document.createElement('a');
-  const difficulty = document.createElement('p');
   const repeatDate = document.createElement('p');
   const lastCompletionDate = document.createElement('p');
   const deleteBtn = document.createElement('button');
@@ -43,7 +42,6 @@ function createRowElement(row) {
 
   link.href = row.link;
   link.textContent = row.titleSlug;
-  difficulty.textContent = row.difficulty;
   repeatDate.textContent = row.repeatDate;
   lastCompletionDate.textContent = row.lastCompletionDate;
 
@@ -54,7 +52,6 @@ function createRowElement(row) {
   link.style.display = 'inline-block';
 
   problemDataDiv.appendChild(link);
-  problemDataDiv.appendChild(difficulty);
   problemDataDiv.appendChild(repeatDate);
   problemDataDiv.appendChild(lastCompletionDate);
   deleteBtn.appendChild(img);

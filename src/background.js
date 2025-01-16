@@ -9,7 +9,6 @@ async function sendToAPI(endpoint, method, requestData) {
     headers: {
       'Content-Type': 'application/json',
     },
-    credentials: 'include',
   };
 
   if (requestData) {
@@ -36,7 +35,6 @@ function addUserCompletedProblem(problem) {
   const completedProblem = new LeetCodeProblem(
     problem.link,
     problem.titleSlug,
-    problem.difficulty,
     problem.repeatDate,
     problem.lastCompletionDate
   );
@@ -112,7 +110,6 @@ async function setUserInfo() {
                   new LeetCodeProblem(
                     problem.link,
                     problem.titleSlug,
-                    problem.difficulty,
                     problem.repeatDate,
                     problem.lastCompletionDate
                   )
@@ -178,7 +175,6 @@ browser.runtime.onMessage.addListener((message, sender, sendResponse) => {
       console.log('user info:', userInfo);
       sendResponse(userInfo);
     });
-    return true; // This is important for asynchronous response
   } else if (message.action === 'problemCompleted') {
     console.log('Problem completed:', message.data);
     addUserCompletedProblem(message.data);
