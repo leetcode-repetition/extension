@@ -31,7 +31,7 @@ async function sendToAPI(endpoint, method, requestData) {
   }
 }
 
-function addUserCompletedProblem(problem) {
+async function addUserCompletedProblem(problem) {
   const completedProblem = new LeetCodeProblem(
     problem.link,
     problem.titleSlug,
@@ -41,7 +41,11 @@ function addUserCompletedProblem(problem) {
   console.log('Problem Data:', completedProblem);
   console.log('User:', user.username);
 
-  sendToAPI(`insert-row?username=${user.username}`, 'POST', completedProblem)
+  const response = await sendToAPI(
+    `insert-row?username=${user.username}`,
+    'POST',
+    completedProblem
+  )
     .then((response) => {
       console.log('Success:', response);
 
@@ -59,11 +63,12 @@ function addUserCompletedProblem(problem) {
     .catch((error) => {
       console.error('Error:', error);
     });
+  return response;
 }
 
-function deleteUserCompletedProblem(problemTitleSlug) {
+async function deleteUserCompletedProblem(problemTitleSlug) {
   const endpoint = `delete-row?username=${user.username}&problemTitleSlug=${problemTitleSlug}`;
-  sendToAPI(endpoint, 'DELETE', null)
+  const result = await sendToAPI(endpoint, 'DELETE', null)
     .then((response) => {
       console.log('Row deleted:', response);
       user.completedProblems.delete(problemTitleSlug);
@@ -71,6 +76,7 @@ function deleteUserCompletedProblem(problemTitleSlug) {
     .catch((error) => {
       console.error('Error deleting row:', error);
     });
+  return result;
 }
 
 function initializeUser(username) {
@@ -177,16 +183,22 @@ browser.runtime.onMessage.addListener((message, sender, sendResponse) => {
     });
   } else if (message.action === 'problemCompleted') {
     console.log('Problem completed:', message.data);
-    addUserCompletedProblem(message.data);
+    (async () => {
+      const result = await addUserCompletedProblem(message.data);
+      sendResponse({ success: true, result });
+    })();
   } else if (message.action === 'deleteRow') {
     console.log('Deleting row:', message.titleSlug);
-    deleteUserCompletedProblem(message.titleSlug);
-    sendResponse({ success: true });
+    (async () => {
+      const result = await deleteUserCompletedProblem(message.titleSlug);
+      sendResponse({ success: true, result });
+    })();
   } else if (message.action === 'checkIfProblemCompletedInLastDay') {
     console.log('Checking if problem is already completed:', message.titleSlug);
     sendResponse({
       isCompleted: checkIfProblemCompletedInLastDay(message.titleSlug),
     });
   }
+
   return true;
 });

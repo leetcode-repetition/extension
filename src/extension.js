@@ -20,7 +20,9 @@ function setupDeleteButtons() {
   const buttons = document.querySelectorAll('.delete-btn');
   console.log(`Setting up ${buttons.length} delete button(s)`);
   buttons.forEach((button) => {
-    button.onclick = (e) => deleteRow(e);
+    button.onclick = (e) => {
+      deleteRow(e);
+    };
   });
 }
 
@@ -80,19 +82,11 @@ function createTable(problems) {
   }
 }
 
-function deleteRowElement(element) {
-  console.log('Deleting row element');
-  element.remove();
-  const table = document.getElementById('problem-table');
-  if (table.children.length === 0) {
-    table.innerHTML =
-      '<p>No problems found. Complete problems to populate the table!</p>';
-  }
-}
-
 function deleteRow(event) {
   console.log('Delete button pressed');
-  const problemRow = event.target.closest('.delete-btn').closest('.problem');
+  const target =
+    event.target.tagName === 'IMG' ? event.target.parentElement : event.target;
+  const problemRow = target.closest('.problem');
   const problemTitleSlug = problemRow.querySelector('a').textContent;
 
   browser.runtime
@@ -101,10 +95,12 @@ function deleteRow(event) {
       titleSlug: problemTitleSlug,
     })
     .then(() => {
-      deleteRowElement(problemRow);
-    })
-    .catch((error) => {
-      console.error('Error deleting row:', error);
+      problemRow.remove();
+      const table = document.getElementById('problem-table');
+      if (table.children.length === 0) {
+        table.innerHTML =
+          '<p>No problems found. Complete problems to populate the table!</p>';
+      }
     });
 }
 
