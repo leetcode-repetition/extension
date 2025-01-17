@@ -50,7 +50,6 @@ function createRowElement(row) {
   link.style.whiteSpace = 'nowrap';
   link.style.overflow = 'hidden';
   link.style.textOverflow = 'ellipsis';
-  link.style.maxWidth = '150px';
   link.style.display = 'inline-block';
 
   problemDataDiv.appendChild(link);
