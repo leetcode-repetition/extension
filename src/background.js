@@ -1,4 +1,4 @@
-import { User, LeetCodeProblem } from './utils/models.js';
+import { User, LeetCodeProblem } from './models.js';
 
 let user = null;
 
@@ -15,20 +15,20 @@ async function sendToAPI(endpoint, method, requestData) {
     fetchOptions.body = JSON.stringify(requestData);
   }
 
-  while (true) {
-    const response = await fetch(url, fetchOptions);
-    console.log('Response status:', response.status);
-    console.log('Response headers:', Object.fromEntries(response.headers));
+  console.log("Calling AWS!!!");
+  const response = await fetch(url, fetchOptions);
+  console.log('Response: ', response);
+  console.log('Response status:', response.status);
+  console.log('Response headers:', Object.fromEntries(response.headers));
 
-    if (!response.ok) {
-      throw new Error(`HTTP error! status: ${response.status}`);
-    }
-
-    const responseBody = await response.text();
-    console.log('Response body:', responseBody);
-
-    return JSON.parse(responseBody);
+  if (!response.ok) {
+    throw new Error(`HTTP error! status: ${response.status}`);
   }
+
+  const responseBody = await response.text();
+  console.log('Response body:', responseBody);
+
+  return JSON.parse(responseBody);
 }
 
 async function addUserCompletedProblem(problem) {
