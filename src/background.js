@@ -1,4 +1,4 @@
-import { User, LeetCodeProblem } from './models.js';
+import { User, LeetCodeProblem, convertUserToUserMap } from './models.js';
 
 let user = null;
 
@@ -15,7 +15,7 @@ async function sendToAPI(endpoint, method, requestData) {
     fetchOptions.body = JSON.stringify(requestData);
   }
 
-  console.log("Calling AWS!!!");
+  console.log('Calling AWS!!!');
   const response = await fetch(url, fetchOptions);
   console.log('Response: ', response);
   console.log('Response status:', response.status);
@@ -32,6 +32,9 @@ async function sendToAPI(endpoint, method, requestData) {
 }
 
 async function addUserCompletedProblem(problem) {
+  const userMap = await browser.storage.sync.get('currentUser');
+  const user = new User(userMap.username);
+
   const completedProblem = new LeetCodeProblem(
     problem.link,
     problem.titleSlug,
@@ -67,8 +70,11 @@ async function addUserCompletedProblem(problem) {
 }
 
 async function deleteUserCompletedProblem(problemTitleSlug) {
+  const userMap = await browser.storage.sync.get('currentUser');
+  const user = new User(userMap.username, userMap.completedProblems);
   const endpoint = `delete-row?username=${user.username}&problemTitleSlug=${problemTitleSlug}`;
-  const result = await sendToAPI(endpoint, 'DELETE', null)
+
+  return await sendToAPI(endpoint, 'DELETE', null)
     .then((response) => {
       console.log('Row deleted:', response);
       user.completedProblems.delete(problemTitleSlug);
@@ -76,13 +82,13 @@ async function deleteUserCompletedProblem(problemTitleSlug) {
     .catch((error) => {
       console.error('Error deleting row:', error);
     });
-  return result;
 }
 
 function initializeUser(username) {
   console.log('Initializing user:', username);
   if (username) {
     user = new User(username);
+    browser.storage.sync.set({ currentUser: convertUserToUserMap(user) })
     console.log('User initialized:', user);
     // sendToAPI(`generate-key?username=${user.username}`, 'POST', {});
   }

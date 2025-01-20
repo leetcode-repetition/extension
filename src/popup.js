@@ -81,6 +81,10 @@ function getRepeatDate(dateString, daysLater) {
 function handleButtonClick(button) {
   console.log(`Button clicked: ${button.innerText}`);
   if (button.innerText === 'NEVER') {
+    browser.runtime.sendMessage({
+      action: 'deleteRow',
+      titleSlug: currentProblemData.titleSlug,
+    });
     return;
   }
 
