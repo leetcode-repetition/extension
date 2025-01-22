@@ -1,7 +1,3 @@
-import { User, LeetCodeProblem, convertUserToUserMap } from './models.js';
-
-let user = null;
-
 async function sendToAPI(endpoint, method, requestData) {
   let url = `http://localhost:8080/${endpoint}`;
   let fetchOptions = {
@@ -32,145 +28,170 @@ async function sendToAPI(endpoint, method, requestData) {
 }
 
 async function addUserCompletedProblem(problem) {
-  const userMap = await browser.storage.sync.get('currentUser');
-  const user = new User(userMap.username);
+  const { currentUser } = await browser.storage.sync.get('currentUser');
+  const username = currentUser.username;
 
-  const completedProblem = new LeetCodeProblem(
-    problem.link,
-    problem.titleSlug,
-    problem.repeatDate,
-    problem.lastCompletionDate
-  );
+  const completedProblem = {
+    link: problem.link,
+    titleSlug: problem.titleSlug,
+    repeatDate: problem.repeatDate,
+    lastCompletionDate: problem.lastCompletionDate,
+  };
+
   console.log('Problem Data:', completedProblem);
-  console.log('User:', user.username);
+  console.log('User:', username);
 
   const response = await sendToAPI(
-    `insert-row?username=${user.username}`,
+    `insert-row?username=${username}`,
     'POST',
     completedProblem
   )
-    .then((response) => {
+    .then(async (response) => {
       console.log('Success:', response);
 
-      const problemsArray = Array.from(user.completedProblems.values());
-      problemsArray.push(completedProblem);
-      const sortedProblems = problemsArray.sort(
+      const problems = Object.values(currentUser.completedProblems);
+      problems.push(completedProblem);
+
+      const sortedProblems = problems.sort(
         (a, b) => new Date(a.repeatDate) - new Date(b.repeatDate)
       );
-      user.completedProblems = new Map(
-        sortedProblems.map((p) => [p.titleSlug, p])
-      );
 
-      console.log('Updated problems:', user.completedProblems);
+      const updatedProblems = {};
+      sortedProblems.forEach((p) => {
+        updatedProblems[p.titleSlug] = p;
+      });
+
+      await browser.storage.sync.set({
+        currentUser: {
+          ...currentUser,
+          completedProblems: updatedProblems,
+        },
+      });
+
+      console.log('Updated problems:', updatedProblems);
     })
     .catch((error) => {
       console.error('Error:', error);
     });
+
   return response;
 }
 
 async function deleteUserCompletedProblem(problemTitleSlug) {
-  const userMap = await browser.storage.sync.get('currentUser');
-  const user = new User(userMap.username, userMap.completedProblems);
-  const endpoint = `delete-row?username=${user.username}&problemTitleSlug=${problemTitleSlug}`;
+  const { currentUser } = await browser.storage.sync.get('currentUser');
+  const endpoint = `delete-row?username=${currentUser.username}&problemTitleSlug=${problemTitleSlug}`;
 
   return await sendToAPI(endpoint, 'DELETE', null)
-    .then((response) => {
+    .then(async (response) => {
       console.log('Row deleted:', response);
-      user.completedProblems.delete(problemTitleSlug);
+
+      const updatedProblems = { ...currentUser.completedProblems };
+      delete updatedProblems[problemTitleSlug];
+
+      await browser.storage.sync.set({
+        currentUser: {
+          ...currentUser,
+          completedProblems: updatedProblems,
+        },
+      });
     })
     .catch((error) => {
       console.error('Error deleting row:', error);
     });
 }
 
-function initializeUser(username) {
-  console.log('Initializing user:', username);
-  if (username) {
-    user = new User(username);
-    browser.storage.sync.set({ currentUser: convertUserToUserMap(user) })
-    console.log('User initialized:', user);
-    // sendToAPI(`generate-key?username=${user.username}`, 'POST', {});
-  }
+async function fetchAndUpdateUserProblems(username) {
+  const tableResponse = await sendToAPI(
+    `get-table?username=${username}`,
+    'GET',
+    null
+  );
+
+  const problemsObject = tableResponse.table
+    .map(({ link, titleSlug, repeatDate, lastCompletionDate }) => ({
+      link,
+      titleSlug,
+      repeatDate,
+      lastCompletionDate,
+    }))
+    .sort((a, b) => new Date(a.repeatDate) - new Date(b.repeatDate))
+    .reduce((acc, problem) => {
+      acc[problem.titleSlug] = problem;
+      return acc;
+    }, {});
+
+  await browser.storage.sync.set({
+    currentUser: {
+      username: username,
+      completedProblems: problemsObject,
+    },
+  });
+
+  return problemsObject;
 }
 
 async function setUserInfo() {
   console.log('Setting user info');
-  return new Promise((resolve) => {
-    browser.tabs.query({ active: true, currentWindow: true }, function (tabs) {
-      browser.tabs.sendMessage(
-        tabs[0].id,
-        { action: 'setUsername' },
-        async (response) => {
-          const username = response;
-          console.log('Received username:', username);
-          initializeUser(username);
-          if (!user) {
-            console.log('User not initialized');
-            resolve();
-            return;
-          }
-          try {
-            const tableResponse = await sendToAPI(
-              `get-table?username=${user.username}`,
-              'GET',
-              null
-            );
-            const sortedProblems = tableResponse.table
-              .map(
-                (problem) =>
-                  new LeetCodeProblem(
-                    problem.link,
-                    problem.titleSlug,
-                    problem.repeatDate,
-                    problem.lastCompletionDate
-                  )
-              )
-              .sort((a, b) => new Date(a.repeatDate) - new Date(b.repeatDate));
 
-            user.completedProblems = new Map(
-              sortedProblems.map((problem) => [problem.titleSlug, problem])
-            );
-            console.log('Table Response:', user.completedProblems);
-          } catch (error) {
-            console.error('Error getting problem table:', error);
-          }
-          resolve();
-        }
-      );
-    });
+  const tabs = await browser.tabs.query({ active: true, currentWindow: true });
+  const username = await browser.tabs.sendMessage(tabs[0].id, {
+    action: 'setUsername',
   });
+  console.log('Received username:', username);
+
+  if (!username) {
+    console.log('User not initialized');
+    return;
+  }
+
+  await browser.storage.sync.set({
+    currentUser: {
+      username: username,
+      completedProblems: {},
+    },
+  });
+
+  try {
+    const problemsObject = await fetchAndUpdateUserProblems(username);
+    console.log('Table Response:', problemsObject);
+  } catch (error) {
+    console.error('Error getting problem table:', error);
+  }
 }
 
-function getUserInfo(shouldRefresh) {
-  return new Promise((resolve) => {
-    if (!user || shouldRefresh) {
-      setUserInfo().then(() => {
-        if (user) {
-          resolve({
-            username: user.username,
-            problems: Array.from(user.completedProblems.values()),
-          });
-        } else {
-          console.log('User not initialized');
-          resolve({ username: null, problems: [] });
-        }
-      });
-    } else {
-      resolve({
-        username: user.username,
-        problems: Array.from(user.completedProblems.values()),
-      });
+async function getUserInfo(shouldRefresh) {
+  const { currentUser } = await browser.storage.sync.get('currentUser');
+
+  if (!currentUser || shouldRefresh) {
+    await setUserInfo();
+    const { currentUser: refreshedUser } =
+      await browser.storage.sync.get('currentUser');
+
+    if (refreshedUser) {
+      return {
+        username: refreshedUser.username,
+        problems: Object.values(refreshedUser.completedProblems),
+      };
     }
-  });
+
+    console.log('User not initialized');
+    return { username: null, problems: [] };
+  }
+
+  return {
+    username: currentUser.username,
+    problems: Object.values(currentUser.completedProblems),
+  };
 }
 
-function checkIfProblemCompletedInLastDay(titleSlug) {
-  if (!user || !user.completedProblems.has(titleSlug)) {
+async function checkIfProblemCompletedInLastDay(titleSlug) {
+  const { currentUser } = await browser.storage.sync.get('currentUser');
+
+  if (!currentUser || !currentUser.completedProblems[titleSlug]) {
     return false;
   }
 
-  const problem = user.completedProblems.get(titleSlug);
+  const problem = currentUser.completedProblems[titleSlug];
   const lastCompletionDate = new Date(problem.lastCompletionDate);
   const now = new Date();
   const oneDayAgo = new Date(now.getTime() - 24 * 60 * 60 * 1000);
@@ -182,7 +203,6 @@ browser.runtime.onMessage.addListener((message, sender, sendResponse) => {
   console.log('Received message:', message);
 
   if (message.action === 'getUserInfo') {
-    console.log('user = ', user);
     getUserInfo(message.shouldRefresh).then((userInfo) => {
       console.log('user info:', userInfo);
       sendResponse(userInfo);
