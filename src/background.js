@@ -1,5 +1,5 @@
 async function sendToAPI(endpoint, method, requestData) {
-  let url = `http://localhost:8080/${endpoint}`;
+  let url = 'abc';
   let fetchOptions = {
     method: method,
     headers: {
@@ -204,25 +204,29 @@ browser.runtime.onMessage.addListener((message, sender, sendResponse) => {
 
   if (message.action === 'getUserInfo') {
     getUserInfo(message.shouldRefresh).then((userInfo) => {
-      console.log('user info:', userInfo);
+      console.log(userInfo);
       sendResponse(userInfo);
     });
-  } else if (message.action === 'problemCompleted') {
+  }
+
+  if (message.action === 'problemCompleted') {
     console.log('Problem completed:', message.data);
-    (async () => {
-      const result = await addUserCompletedProblem(message.data);
+    addUserCompletedProblem(message.data).then((result) => {
       sendResponse({ success: true, result });
-    })();
-  } else if (message.action === 'deleteRow') {
+    });
+  }
+
+  if (message.action === 'deleteRow') {
     console.log('Deleting row:', message.titleSlug);
-    (async () => {
-      const result = await deleteUserCompletedProblem(message.titleSlug);
+    deleteUserCompletedProblem(message.titleSlug).then((result) => {
       sendResponse({ success: true, result });
-    })();
-  } else if (message.action === 'checkIfProblemCompletedInLastDay') {
+    });
+  }
+
+  if (message.action === 'checkIfProblemCompletedInLastDay') {
     console.log('Checking if problem is already completed:', message.titleSlug);
-    sendResponse({
-      isCompleted: checkIfProblemCompletedInLastDay(message.titleSlug),
+    checkIfProblemCompletedInLastDay(message.titleSlug).then((isCompleted) => {
+      sendResponse({ isCompleted });
     });
   }
 

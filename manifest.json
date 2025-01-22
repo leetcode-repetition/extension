@@ -6,6 +6,7 @@
   "permissions": [
     "cookies",
     "activeTab",
+    "tabs",
     "storage",
     "webNavigation"
   ],
@@ -35,5 +36,10 @@
           "48": "./src/static/icon.svg",
           "128": "./src/static/icon.svg"
       }
+  },
+  "browser_specific_settings": {
+    "gecko": {
+      "id": "leetcode-repetition@extension.dev"
+    }
   }
 }

@@ -1,4 +1,6 @@
 let currentProblemData = {};
+let processingSubmission = false;
+const processedMessageIds = new Set();
 
 const createPopupHTML = () => `
   <div id="lre-overlay">
@@ -72,7 +74,6 @@ function applyStyles() {
 }
 
 function getRepeatDate(dateString, daysLater) {
-  console.log(`Getting repeat date for ${dateString} + ${daysLater} days`);
   const date = new Date(dateString);
   date.setDate(date.getDate() + parseInt(daysLater, 10));
   return `${date.getMonth() + 1}/${date.getDate()}/${date.getFullYear().toString().slice(-2)}`;
@@ -102,17 +103,34 @@ function handleButtonClick(button) {
 }
 
 (function () {
-  const script = document.createElement('script');
+  if (window.__leetcodeRepetitionInjected) {
+    return;
+  }
+  window.__leetcodeRepetitionInjected = true;
 
+  const script = document.createElement('script');
   script.textContent = `
     (${function () {
+      if (window.__leetcodeFetchIntercepted) {
+        return;
+      }
+      window.__leetcodeFetchIntercepted = true;
+
       const originalFetch = window.fetch;
-      const originalXHROpen = XMLHttpRequest.prototype.open;
+      const processedSubmissions = new Set();
 
       function interceptFetch(url, init) {
-        if (url.match(/\/submissions\/detail\/\d+\/check\//)) {
-          console.log('Fetch intercepted:', url);
+        const submissionMatch = url.match(
+          /\/submissions\/detail\/(\d+)\/check\//
+        );
+        if (submissionMatch) {
+          const submissionId = submissionMatch[1];
 
+          if (processedSubmissions.has(submissionId)) {
+            return originalFetch(url, init);
+          }
+
+          console.log('Fetching original request: ', submissionMatch);
           return originalFetch(url, init).then(async (response) => {
             const clonedResponse = response.clone();
             const responseData = await clonedResponse.json();
@@ -121,31 +139,25 @@ function handleButtonClick(button) {
               responseData.state === 'SUCCESS' &&
               responseData.status_msg === 'Accepted'
             ) {
-              console.log('Submission accepted:', responseData);
+              console.log('Processing successful submission');
+              processedSubmissions.add(submissionId);
               window.postMessage(
                 {
                   type: 'submissionAccepted',
                   data: responseData,
                   url: window.location.href,
+                  submissionId: submissionId,
                 },
                 '*'
               );
             }
-
             return response;
           });
         }
-
         return originalFetch(url, init);
       }
 
-      function interceptXHROpen() {
-        this._url = arguments[1];
-        return originalXHROpen.apply(this, arguments);
-      }
-
       window.fetch = interceptFetch;
-      XMLHttpRequest.prototype.open = interceptXHROpen;
     }})();
   `;
 
@@ -154,32 +166,49 @@ function handleButtonClick(button) {
 })();
 
 window.addEventListener('message', function (event) {
-  if (event.data.type === 'submissionAccepted') {
+  if (event.data.type === 'submissionAccepted' && !processingSubmission) {
+    const messageId = event.data.submissionId;
+    if (processedMessageIds.has(messageId)) {
+      return;
+    }
+    processedMessageIds.add(messageId);
+    processingSubmission = true;
+
+    console.log('Submission Accepted!!! Message id: ', messageId);
+
     currentProblemData.titleSlug =
       event.data.url.match(/problems\/([^\/]+)/)[1];
     currentProblemData.link = event.data.url.match(
       /(https:\/\/leetcode\.com\/problems\/[^\/]+)/
     )[1];
-    console.log('Submitted Problem!!');
-    console.log('Problem Title Slug: ' + currentProblemData.titleSlug);
-    browser.runtime
-      .sendMessage({
-        action: 'checkIfProblemCompletedInLastDay',
-        titleSlug: currentProblemData.titleSlug,
-      })
-      .then((response) => {
-        if (!response.isCompleted) {
-          console.log('Problem not completed in the last day.');
-          const popupContainer = document.createElement('div');
-          popupContainer.innerHTML = createPopupHTML();
-          document.body.appendChild(popupContainer);
-          applyStyles();
-        } else {
-          console.log('Problem completed in the last day.');
-        }
-      });
+
+    // Add connection check before sending message
+    if (browser && browser.runtime && browser.runtime.id) {
+      console.log('Checking if problem has been completed...');
+      browser.runtime
+        .sendMessage({
+          action: 'checkIfProblemCompletedInLastDay',
+          titleSlug: currentProblemData.titleSlug,
+        })
+        .then((response) => {
+          console.log('Recieved checkIfProblemCompletedInLastDay response.');
+          if (!response.isCompleted) {
+            console.log('Problem is newly completed!!!');
+            const popupContainer = document.createElement('div');
+            popupContainer.innerHTML = createPopupHTML();
+            document.body.appendChild(popupContainer);
+            applyStyles();
+          }
+          processingSubmission = false;
+        })
+        .catch(() => {
+          processingSubmission = false;
+        });
+    } else {
+      console.log('ERROR: Unable to make necessary connection...');
+      processingSubmission = false;
+    }
   }
 });
-
-observer.observe(document.body, { childList: true, subtree: true });
-console.log('Checking for acceptance...');
+// observer.observe(document.body, { childList: true, subtree: true });
+// console.log('Checking for acceptance...');

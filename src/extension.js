@@ -109,11 +109,10 @@ function callGetUserInfo(shouldRefresh) {
     .sendMessage({ action: 'getUserInfo', shouldRefresh: shouldRefresh })
     .then((response) => {
       console.log('Received response:', response);
-      if (!response) {
-        return;
-      }
+      // The response is the userInfo object with username and problems
       setUsernameElement(response.username);
       createTable(response.problems);
+      setupRefreshButton();
     });
 }
 
