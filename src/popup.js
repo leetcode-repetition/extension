@@ -184,7 +184,6 @@ window.addEventListener('message', function (event) {
 
     // Add connection check before sending message
     if (browser && browser.runtime && browser.runtime.id) {
-      console.log('Checking if problem has been completed...');
       browser.runtime
         .sendMessage({
           action: 'checkIfProblemCompletedInLastDay',

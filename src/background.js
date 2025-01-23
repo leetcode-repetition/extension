@@ -1,5 +1,5 @@
 async function sendToAPI(endpoint, method, requestData) {
-  let url = 'abc';
+  let url = `abc`;
   let fetchOptions = {
     method: method,
     headers: {
@@ -28,9 +28,13 @@ async function sendToAPI(endpoint, method, requestData) {
 }
 
 async function addUserCompletedProblem(problem) {
-  const { currentUser } = await browser.storage.sync.get('currentUser');
-  const username = currentUser.username;
+  let { currentUser } = await browser.storage.sync.get('currentUser');
+  if (!currentUser) {
+    await setUserInfo();
+    ({ currentUser } = await browser.storage.sync.get('currentUser'));
+  }
 
+  const username = currentUser.username;
   const completedProblem = {
     link: problem.link,
     titleSlug: problem.titleSlug,
@@ -134,12 +138,14 @@ async function setUserInfo() {
   console.log('Setting user info');
 
   const tabs = await browser.tabs.query({ active: true, currentWindow: true });
-  const username = await browser.tabs.sendMessage(tabs[0].id, {
-    action: 'setUsername',
-  });
-  console.log('Received username:', username);
 
-  if (!username) {
+  let username = null;
+  try {
+    username = await browser.tabs.sendMessage(tabs[0].id, {
+      action: 'setUsername',
+    });
+    console.log('Received username:', username);
+  } catch {
     console.log('User not initialized');
     return;
   }
@@ -199,6 +205,25 @@ async function checkIfProblemCompletedInLastDay(titleSlug) {
   return lastCompletionDate > oneDayAgo;
 }
 
+async function deleteAllUserCompletedProblems() {
+  const { currentUser } = await browser.storage.sync.get('currentUser');
+  const endpoint = `delete-table?username=${currentUser.username}`;
+
+  return await sendToAPI(endpoint, 'DELETE', null)
+    .then(async (response) => {
+      console.log('All Problems Deleted:', response);
+      await browser.storage.sync.set({
+        currentUser: {
+          ...currentUser,
+          completedProblems: {},
+        },
+      });
+    })
+    .catch((error) => {
+      console.error('Error deleting ALL problems:', error);
+    });
+}
+
 browser.runtime.onMessage.addListener((message, sender, sendResponse) => {
   console.log('Received message:', message);
 
@@ -216,8 +241,8 @@ browser.runtime.onMessage.addListener((message, sender, sendResponse) => {
     });
   }
 
-  if (message.action === 'deleteRow') {
-    console.log('Deleting row:', message.titleSlug);
+  if (message.action === 'deleteProblem') {
+    console.log('Deleting problem:', message.titleSlug);
     deleteUserCompletedProblem(message.titleSlug).then((result) => {
       sendResponse({ success: true, result });
     });
@@ -227,6 +252,13 @@ browser.runtime.onMessage.addListener((message, sender, sendResponse) => {
     console.log('Checking if problem is already completed:', message.titleSlug);
     checkIfProblemCompletedInLastDay(message.titleSlug).then((isCompleted) => {
       sendResponse({ isCompleted });
+    });
+  }
+
+  if (message.action == 'deleteAllProblems') {
+    console.log('Deleting ALL problems');
+    deleteAllUserCompletedProblems().then((result) => {
+      sendResponse({ success: true, result });
     });
   }
 

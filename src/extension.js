@@ -21,9 +21,33 @@ function setupDeleteButtons() {
   console.log(`Setting up ${buttons.length} delete button(s)`);
   buttons.forEach((button) => {
     button.onclick = (e) => {
-      deleteRow(e);
+      deleteProblem(e);
     };
   });
+}
+
+function createDeleteAllButton() {
+  console.log('Creating delete all button');
+  const element = document.getElementById('delete-all-btn');
+  element.style.display = 'flex';
+  element.innerHTML = '';
+
+  const text = document.createElement('p');
+  const img = document.createElement('img');
+
+  element.id = 'delete-all-btn';
+  text.textContent = 'Delete All';
+  img.src = './trash.svg';
+
+  element.appendChild(text);
+  element.appendChild(img);
+
+  const refreshBtn = document.getElementById('refresh-btn');
+  refreshBtn.style.marginLeft = '0';
+
+  element.onclick = () => {
+    deleteAllProblems();
+  };
 }
 
 function createRowElement(row) {
@@ -63,25 +87,35 @@ function createRowElement(row) {
   return problemDiv;
 }
 
+function initializeEmptyTable() {
+  document.getElementById('problem-table').innerHTML =
+    '<p>No problems found. Complete problems to populate the table!</p>';
+  document.getElementById('delete-all-btn').style.display = 'none';
+  document.getElementById('refresh-btn').style.marginLeft = 'auto';
+}
+
 function createTable(problems) {
   console.log('Creating table element');
-  const element = document.getElementById('problem-table');
+  const tableElement = document.getElementById('problem-table');
   console.log(problems);
   setupRefreshButton();
 
   if (problems && problems.length > 0) {
+    createDeleteAllButton();
+
     const table = document.createDocumentFragment();
     problems.forEach((row) => table.appendChild(createRowElement(row)));
-    element.innerHTML = '';
-    element.appendChild(table);
+
+    tableElement.innerHTML = '';
+    tableElement.appendChild(table);
+
     setupDeleteButtons();
   } else {
-    element.innerHTML =
-      '<p>No problems found. Complete problems to populate the table!</p>';
+    initializeEmptyTable();
   }
 }
 
-function deleteRow(event) {
+function deleteProblem(event) {
   console.log('Delete button pressed');
   const target =
     event.target.tagName === 'IMG' ? event.target.parentElement : event.target;
@@ -90,16 +124,25 @@ function deleteRow(event) {
 
   browser.runtime
     .sendMessage({
-      action: 'deleteRow',
+      action: 'deleteProblem',
       titleSlug: problemTitleSlug,
     })
     .then(() => {
       problemRow.remove();
-      const table = document.getElementById('problem-table');
-      if (table.children.length === 0) {
-        table.innerHTML =
-          '<p>No problems found. Complete problems to populate the table!</p>';
+      if (document.getElementById('problem-table').children.length === 0) {
+        initializeEmptyTable();
       }
+    });
+}
+
+function deleteAllProblems() {
+  console.log('Delete all problems button pressed');
+  browser.runtime
+    .sendMessage({
+      action: 'deleteAllProblems',
+    })
+    .then(() => {
+      initializeEmptyTable();
     });
 }
 
@@ -109,7 +152,6 @@ function callGetUserInfo(shouldRefresh) {
     .sendMessage({ action: 'getUserInfo', shouldRefresh: shouldRefresh })
     .then((response) => {
       console.log('Received response:', response);
-      // The response is the userInfo object with username and problems
       setUsernameElement(response.username);
       createTable(response.problems);
       setupRefreshButton();
@@ -122,6 +164,5 @@ document.addEventListener('DOMContentLoaded', async () => {
 });
 
 window.addEventListener('unload', () => {
-  document.getElementById('problem-table').innerHTML =
-    '<p>No problems found. Complete problems to populate the table!</p>';
+  initializeEmptyTable();
 });
