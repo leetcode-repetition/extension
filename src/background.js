@@ -14,7 +14,7 @@ async function sendToAPI(endpoint, method, requestData) {
   const response = await fetch(url, fetchOptions);
   console.log('AWS Response: ', response);
   console.log('AWS Response status:', response.status);
-  console.log('AWSResponse headers:', Object.fromEntries(response.headers));
+  console.log('AWS Response headers:', Object.fromEntries(response.headers));
 
   if (!response.ok) {
     throw new Error(`HTTP error! status: ${response.status}`);
