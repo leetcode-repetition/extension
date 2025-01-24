@@ -11,11 +11,10 @@ async function sendToAPI(endpoint, method, requestData) {
     fetchOptions.body = JSON.stringify(requestData);
   }
 
-  console.log('Calling AWS!!!');
   const response = await fetch(url, fetchOptions);
-  console.log('Response: ', response);
-  console.log('Response status:', response.status);
-  console.log('Response headers:', Object.fromEntries(response.headers));
+  console.log('AWS Response: ', response);
+  console.log('AWS Response status:', response.status);
+  console.log('AWSResponse headers:', Object.fromEntries(response.headers));
 
   if (!response.ok) {
     throw new Error(`HTTP error! status: ${response.status}`);
