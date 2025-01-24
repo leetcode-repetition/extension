@@ -182,7 +182,6 @@ window.addEventListener('message', function (event) {
       /(https:\/\/leetcode\.com\/problems\/[^\/]+)/
     )[1];
 
-    // Add connection check before sending message
     if (browser && browser.runtime && browser.runtime.id) {
       browser.runtime
         .sendMessage({
@@ -209,5 +208,3 @@ window.addEventListener('message', function (event) {
     }
   }
 });
-// observer.observe(document.body, { childList: true, subtree: true });
-// console.log('Checking for acceptance...');
