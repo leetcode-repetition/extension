@@ -158,9 +158,31 @@ function callGetUserInfo(shouldRefresh) {
     });
 }
 
+function setAllButtonsDisabled(disabled) {
+  console.log(`Setting button clickability to ${disabled}`);
+  const container = document.getElementById('container');
+  const buttons = container.querySelectorAll('button');
+  buttons.forEach((button) => {
+    button.disabled = disabled;
+    button.style.opacity = disabled ? '0.5' : '1';
+    button.style.cursor = disabled ? 'not-allowed' : 'pointer';
+  });
+}
+
 document.addEventListener('DOMContentLoaded', async () => {
   console.log('DOMContentLoaded event fired');
   callGetUserInfo(false);
+});
+
+browser.runtime.onMessage.addListener((message, sender, sendResponse) => {
+  console.log('Received message:', message);
+
+  if (message.action === 'disableButtons') {
+    setAllButtonsDisabled(message.shouldDisable);
+    sendResponse({ success: true });
+  }
+
+  return true;
 });
 
 window.addEventListener('unload', () => {

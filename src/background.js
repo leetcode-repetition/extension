@@ -11,6 +11,11 @@ async function sendToAPI(endpoint, method, requestData) {
     fetchOptions.body = JSON.stringify(requestData);
   }
 
+  browser.runtime.sendMessage({
+    action: 'disableButtons',
+    shouldDisable: true,
+  });
+
   const response = await fetch(url, fetchOptions);
   console.log('AWS Response: ', response);
   console.log('AWS Response status:', response.status);
@@ -22,6 +27,11 @@ async function sendToAPI(endpoint, method, requestData) {
 
   const responseBody = await response.text();
   console.log('Response body:', responseBody);
+
+  browser.runtime.sendMessage({
+    action: 'disableButtons',
+    shouldDisable: false,
+  });
 
   return JSON.parse(responseBody);
 }
@@ -254,7 +264,7 @@ browser.runtime.onMessage.addListener((message, sender, sendResponse) => {
     });
   }
 
-  if (message.action == 'deleteAllProblems') {
+  if (message.action === 'deleteAllProblems') {
     console.log('Deleting ALL problems');
     deleteAllUserCompletedProblems().then((result) => {
       sendResponse({ success: true, result });

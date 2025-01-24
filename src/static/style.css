@@ -114,6 +114,23 @@ a:hover {
     filter: invert(100%) sepia(100%) saturate(0%) hue-rotate(180deg) brightness(100%) contrast(100%);
 }
 
+#delete-all-btn p {
+    font-size: large;
+    padding: 4px;
+    color: white;
+    text-align: center;
+    transform: translateY(0px);
+}
+
+#delete-all-btn:hover p {
+    color: #999999;
+}
+
+#delete-all-btn img {
+    filter: invert(100%) sepia(100%) saturate(0%) hue-rotate(180deg) brightness(100%) contrast(100%);
+    width: 28px;
+}
+
 #table-header > p,
 .data > * {
     flex: 1;
@@ -135,21 +152,3 @@ a:hover {
 .data:hover {
     background-color: #3a3944;
 }
-
-#delete-all-btn p {
-    font-size: large;
-    padding: 4px;
-    color: white;
-    text-align: center;
-    transform: translateY(0px);
-}
-
-#delete-all-btn:hover p {
-    color:#CCCCCC;
-}
-
-#delete-all-btn img {
-    filter: invert(100%) sepia(100%) saturate(0%) hue-rotate(180deg) brightness(100%) contrast(100%);
-    width: 28px;
-}
-

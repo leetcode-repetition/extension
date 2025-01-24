@@ -76,7 +76,7 @@ function applyStyles() {
 function getRepeatDate(dateString, daysLater) {
   const date = new Date(dateString);
   date.setDate(date.getDate() + parseInt(daysLater, 10));
-  return `${date.getMonth() + 1}/${date.getDate()}/${date.getFullYear().toString().slice(-2)}`;
+  return `${date.getMonth() + 1}/${date.getDate()}/${date.getFullYear().toString()}`;
 }
 
 function handleButtonClick(button) {
