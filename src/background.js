@@ -114,6 +114,7 @@ async function deleteUserCompletedProblem(problemTitleSlug) {
 }
 
 async function fetchAndUpdateUserProblems(username) {
+  const { currentUser } = await browser.storage.sync.get('currentUser');
   const tableResponse = await sendToAPI(
     `get-table?username=${username}`,
     'GET',
@@ -135,7 +136,7 @@ async function fetchAndUpdateUserProblems(username) {
 
   await browser.storage.sync.set({
     currentUser: {
-      username: username,
+      ...currentUser,
       completedProblems: problemsObject,
     },
   });
@@ -149,22 +150,37 @@ async function setUserInfo() {
   const tabs = await browser.tabs.query({ active: true, currentWindow: true });
 
   let username = null;
+  let userId = null;
   try {
-    username = await browser.tabs.sendMessage(tabs[0].id, {
-      action: 'setUsername',
+    const response = await browser.tabs.sendMessage(tabs[0].id, {
+      action: 'getUsernameAndUserId',
     });
-    console.log('Received username:', username);
+    username = response.username;
+    userId = response.userId;
+    if (!username || !userId) {
+      throw new Error('Username not found - please log in to LeetCode');
+    }
+    console.log('Received username and userId');
   } catch {
     console.log('User not initialized');
     return;
   }
 
-  await browser.storage.sync.set({
-    currentUser: {
-      username: username,
-      completedProblems: {},
-    },
-  });
+  apiKey = await sendToAPI('create-key', 'POST', null)
+    .then(async (response) => {
+      console.log('Obtained new API key: ', response);
+      // await browser.storage.sync.set({
+      //   currentUser: {
+      //     username: username,
+      //     userId: userId,
+      //     apiKey: response,
+      //     completedProblems: {},
+      //   },
+      // });
+    })
+    .catch((error) => {
+      console.error('Error obtaining API key:', error);
+    });
 
   try {
     const problemsObject = await fetchAndUpdateUserProblems(username);
@@ -185,17 +201,17 @@ async function getUserInfo(shouldRefresh) {
     if (refreshedUser) {
       return {
         username: refreshedUser.username,
-        problems: Object.values(refreshedUser.completedProblems),
+        completedProblems: Object.values(refreshedUser.completedProblems),
       };
     }
 
     console.log('User not initialized');
-    return { username: null, problems: [] };
+    return { username: null, completedProblems: [] };
   }
 
   return {
     username: currentUser.username,
-    problems: Object.values(currentUser.completedProblems),
+    completedProblems: Object.values(currentUser.completedProblems),
   };
 }
 

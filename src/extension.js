@@ -153,7 +153,7 @@ function callGetUserInfo(shouldRefresh) {
     .then((response) => {
       console.log('Received response:', response);
       setUsernameElement(response.username);
-      createTable(response.problems);
+      createTable(response.completedProblems);
       setupRefreshButton();
     });
 }
