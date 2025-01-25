@@ -43,7 +43,7 @@ async function addUserCompletedProblem(problem) {
     ({ currentUser } = await browser.storage.sync.get('currentUser'));
   }
 
-  const username = currentUser.username;
+  const userId = currentUser.userId;
   const completedProblem = {
     link: problem.link,
     titleSlug: problem.titleSlug,
@@ -51,11 +51,11 @@ async function addUserCompletedProblem(problem) {
     lastCompletionDate: problem.lastCompletionDate,
   };
 
+  console.log('User:', userId);
   console.log('Problem Data:', completedProblem);
-  console.log('User:', username);
 
   const response = await sendToAPI(
-    `insert-row?username=${username}`,
+    `insert-row?userId=${userId}`,
     'POST',
     completedProblem
   )
@@ -92,7 +92,7 @@ async function addUserCompletedProblem(problem) {
 
 async function deleteUserCompletedProblem(problemTitleSlug) {
   const { currentUser } = await browser.storage.sync.get('currentUser');
-  const endpoint = `delete-row?username=${currentUser.username}&problemTitleSlug=${problemTitleSlug}`;
+  const endpoint = `delete-row?userId=${currentUser.userId}&problemTitleSlug=${problemTitleSlug}`;
 
   return await sendToAPI(endpoint, 'DELETE', null)
     .then(async (response) => {
@@ -113,10 +113,10 @@ async function deleteUserCompletedProblem(problemTitleSlug) {
     });
 }
 
-async function fetchAndUpdateUserProblems(username) {
+async function fetchAndUpdateUserProblems(userId) {
   const { currentUser } = await browser.storage.sync.get('currentUser');
   const tableResponse = await sendToAPI(
-    `get-table?username=${username}`,
+    `get-table?userId=${userId}`,
     'GET',
     null
   );
@@ -183,7 +183,7 @@ async function setUserInfo() {
     });
 
   try {
-    const problemsObject = await fetchAndUpdateUserProblems(username);
+    const problemsObject = await fetchAndUpdateUserProblems(userId);
     console.log('Table Response:', problemsObject);
   } catch (error) {
     console.error('Error getting problem table:', error);
@@ -232,7 +232,7 @@ async function checkIfProblemCompletedInLastDay(titleSlug) {
 
 async function deleteAllUserCompletedProblems() {
   const { currentUser } = await browser.storage.sync.get('currentUser');
-  const endpoint = `delete-table?username=${currentUser.username}`;
+  const endpoint = `delete-table?userId=${currentUser.userId}`;
 
   return await sendToAPI(endpoint, 'DELETE', null)
     .then(async (response) => {
