@@ -33,6 +33,7 @@ async function getLeetCodeUsernameAndUserId() {
 
 browser.runtime.onMessage.addListener((message, sender, sendResponse) => {
   console.log('Received message:', message);
+
   if (message.action === 'getUsernameAndUserId') {
     getLeetCodeUsernameAndUserId().then((userInfo) => {
       console.log(userInfo);

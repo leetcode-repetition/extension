@@ -1,9 +1,12 @@
 async function sendToAPI(endpoint, method, requestData) {
-  let url = `abc`;
+  const { currentUser } = await browser.storage.sync.get('currentUser');
+  const url = `https://3d6q6gdc2a.execute-api.us-east-2.amazonaws.com/prod/v1/${endpoint}`;
+
   let fetchOptions = {
     method: method,
     headers: {
       'Content-Type': 'application/json',
+      'X-Api-Key': currentUser ? currentUser.apiKey : '',
     },
   };
 
@@ -145,12 +148,10 @@ async function fetchAndUpdateUserProblems(userId) {
 }
 
 async function setUserInfo() {
-  console.log('Setting user info');
-
   const tabs = await browser.tabs.query({ active: true, currentWindow: true });
-
   let username = null;
   let userId = null;
+
   try {
     const response = await browser.tabs.sendMessage(tabs[0].id, {
       action: 'getUsernameAndUserId',
@@ -166,17 +167,17 @@ async function setUserInfo() {
     return;
   }
 
-  apiKey = await sendToAPI('create-key', 'POST', null)
+  await sendToAPI(`create-key?userId=${userId}`, 'POST', null)
     .then(async (response) => {
-      console.log('Obtained new API key: ', response);
-      // await browser.storage.sync.set({
-      //   currentUser: {
-      //     username: username,
-      //     userId: userId,
-      //     apiKey: response,
-      //     completedProblems: {},
-      //   },
-      // });
+      console.log('Obtained new API key: ', response.apiKey);
+      await browser.storage.sync.set({
+        currentUser: {
+          username: username,
+          userId: userId,
+          apiKey: response.apiKey,
+          completedProblems: {},
+        },
+      });
     })
     .catch((error) => {
       console.error('Error obtaining API key:', error);
