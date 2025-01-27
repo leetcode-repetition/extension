@@ -99,18 +99,18 @@ a:hover {
     margin-right: 1px;
 }
 
-#problem-table button {
+#problem-table-content button {
     width: 38px;
     height: auto;
     background-color: #1c1c1c;
     border: 0;
 }
 
-#problem-table button:hover {
+#problem-table-content button:hover {
     background-color: red;
 }
 
-#problem-table button:hover img {
+#problem-table-content button:hover img {
     filter: invert(100%) sepia(100%) saturate(0%) hue-rotate(180deg) brightness(100%) contrast(100%);
 }
 
@@ -151,4 +151,9 @@ a:hover {
 
 .data:hover {
     background-color: #3a3944;
+}
+
+iframe {
+    display: none;
+    margin: 0 auto;
 }

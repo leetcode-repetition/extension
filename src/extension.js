@@ -88,7 +88,8 @@ function createRowElement(row) {
 }
 
 function initializeEmptyTable() {
-  document.getElementById('problem-table').innerHTML =
+  document.getElementById('loading').display = 'none';
+  document.getElementById('problem-table-content').innerHTML =
     '<p>No problems found. Complete problems to populate the table!</p>';
   document.getElementById('delete-all-btn').style.display = 'none';
   document.getElementById('refresh-btn').style.marginLeft = 'auto';
@@ -96,7 +97,7 @@ function initializeEmptyTable() {
 
 function createTable(problems) {
   console.log('Creating table element');
-  const tableElement = document.getElementById('problem-table');
+  const tableElement = document.getElementById('problem-table-content');
   console.log(problems);
   setupRefreshButton();
 
@@ -115,6 +116,24 @@ function createTable(problems) {
   }
 }
 
+// function createLoadingGif() {
+//   console.log('Creating loading gif');
+//   const tableElement = document.getElementById('problem-table');
+//   const video = document.createElement('video');
+
+//   video.src = './loading.webm';
+//   video.autoplay = true;
+//   video.loop = false;
+//   video.muted = true;
+//   video.playsinline = true;
+
+//   video.style.display = 'block';
+//   video.style.margin = '0 auto';
+
+//   tableElement.innerHTML = '';
+//   tableElement.appendChild(video);
+// }
+
 function deleteProblem(event) {
   console.log('Delete button pressed');
   const target =
@@ -129,7 +148,9 @@ function deleteProblem(event) {
     })
     .then(() => {
       problemRow.remove();
-      if (document.getElementById('problem-table').children.length === 0) {
+      if (
+        document.getElementById('problem-table-content').children.length === 0
+      ) {
         initializeEmptyTable();
       }
     });
@@ -148,6 +169,16 @@ function deleteAllProblems() {
 
 function callGetUserInfo(shouldRefresh) {
   console.log('Calling getUserInfo');
+  const currentUser = async () => {
+    const { currentUser } = await browser.storage.sync.get('currentUser');
+    return currentUser;
+  };
+
+  if (!currentUser || shouldRefresh) {
+    document.getElementById('problem-table-content').innerHTML = '';
+    document.getElementById('loading').display = 'block';
+  }
+
   browser.runtime
     .sendMessage({ action: 'getUserInfo', shouldRefresh: shouldRefresh })
     .then((response) => {

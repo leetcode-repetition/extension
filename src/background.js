@@ -1,3 +1,5 @@
+const delay = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
+
 async function sendToAPI(endpoint, method, requestData) {
   const { currentUser } = await browser.storage.sync.get('currentUser');
   const url = `https://3d6q6gdc2a.execute-api.us-east-2.amazonaws.com/prod/v1/${endpoint}`;
@@ -14,6 +16,9 @@ async function sendToAPI(endpoint, method, requestData) {
     fetchOptions.body = JSON.stringify(requestData);
   }
 
+  await browser.storage.sync.set({
+    disableButtons: true,
+  });
   browser.runtime.sendMessage({
     action: 'disableButtons',
     shouldDisable: true,
@@ -31,6 +36,9 @@ async function sendToAPI(endpoint, method, requestData) {
   const responseBody = await response.text();
   console.log('Response body:', responseBody);
 
+  await browser.storage.sync.set({
+    disableButtons: false,
+  });
   browser.runtime.sendMessage({
     action: 'disableButtons',
     shouldDisable: false,
@@ -182,6 +190,9 @@ async function setUserInfo() {
     .catch((error) => {
       console.error('Error obtaining API key:', error);
     });
+
+  // give API key time to propagate
+  await delay(20000);
 
   try {
     const problemsObject = await fetchAndUpdateUserProblems(userId);
