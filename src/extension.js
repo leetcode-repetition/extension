@@ -6,20 +6,22 @@ function setUsernameElement(username) {
   }
 }
 
-function setupRefreshButton() {
+function setupRefreshButton(disableButtons) {
   console.log('Setting up refresh button');
   const refreshButton = document.getElementById('refresh-btn');
+  refreshButton.disabled = disableButtons;
   refreshButton.onclick = () => {
     console.log('Refresh button clicked');
     callGetUserInfo(true);
   };
 }
 
-function setupDeleteButtons() {
+function setupDeleteButtons(disableButtons) {
   console.log('Setting up delete buttons');
   const buttons = document.querySelectorAll('.delete-btn');
   console.log(`Setting up ${buttons.length} delete button(s)`);
   buttons.forEach((button) => {
+    button.disabled = disableButtons;
     button.onclick = (e) => {
       deleteProblem(e);
     };
@@ -95,11 +97,11 @@ function initializeEmptyTable() {
   document.getElementById('refresh-btn').style.marginLeft = 'auto';
 }
 
-function createTable(problems) {
+function createTable(problems, disableButtons) {
   console.log('Creating table element');
   const tableElement = document.getElementById('problem-table-content');
   console.log(problems);
-  setupRefreshButton();
+  setupRefreshButton(disableButtons);
 
   if (problems && problems.length > 0) {
     createDeleteAllButton();
@@ -110,7 +112,7 @@ function createTable(problems) {
     tableElement.innerHTML = '';
     tableElement.appendChild(table);
 
-    setupDeleteButtons();
+    setupDeleteButtons(disableButtons);
   } else {
     initializeEmptyTable();
   }
@@ -184,19 +186,18 @@ function callGetUserInfo(shouldRefresh) {
     .then((response) => {
       console.log('Received response:', response);
       setUsernameElement(response.username);
-      createTable(response.completedProblems);
-      setupRefreshButton();
+      createTable(response.completedProblems, response.disableButtons);
     });
 }
 
-function setAllButtonsDisabled(disabled) {
-  console.log(`Setting button clickability to ${disabled}`);
+function setAllButtonsDisabled(disableButtons) {
+  console.log(`Setting button clickability to ${disableButtons}`);
   const container = document.getElementById('container');
   const buttons = container.querySelectorAll('button');
   buttons.forEach((button) => {
-    button.disabled = disabled;
-    button.style.opacity = disabled ? '0.5' : '1';
-    button.style.cursor = disabled ? 'not-allowed' : 'pointer';
+    button.disabled = disableButtons;
+    button.style.opacity = disableButtons ? '0.5' : '1';
+    button.style.cursor = disableButtons ? 'not-allowed' : 'pointer';
   });
 }
 
@@ -209,7 +210,7 @@ browser.runtime.onMessage.addListener((message, sender, sendResponse) => {
   console.log('Received message:', message);
 
   if (message.action === 'disableButtons') {
-    setAllButtonsDisabled(message.shouldDisable);
+    setAllButtonsDisabled(message.disableButtons);
     sendResponse({ success: true });
   }
 

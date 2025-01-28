@@ -1,5 +1,19 @@
 const delay = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
 
+async function disableButtons(state) {
+  await browser.storage.sync.set({
+    disableButtons: state,
+  });
+  try {
+    browser.runtime.sendMessage({
+      action: 'disableButtons',
+      disableButtons: state,
+    });
+  } catch {
+    console.log('Extension tab not open!');
+  }
+}
+
 async function sendToAPI(endpoint, method, requestData) {
   const { currentUser } = await browser.storage.sync.get('currentUser');
   const url = `https://3d6q6gdc2a.execute-api.us-east-2.amazonaws.com/prod/v1/${endpoint}`;
@@ -16,13 +30,7 @@ async function sendToAPI(endpoint, method, requestData) {
     fetchOptions.body = JSON.stringify(requestData);
   }
 
-  await browser.storage.sync.set({
-    disableButtons: true,
-  });
-  browser.runtime.sendMessage({
-    action: 'disableButtons',
-    shouldDisable: true,
-  });
+  await disableButtons(true);
 
   const response = await fetch(url, fetchOptions);
   console.log('AWS Response: ', response);
@@ -30,20 +38,14 @@ async function sendToAPI(endpoint, method, requestData) {
   console.log('AWS Response headers:', Object.fromEntries(response.headers));
 
   if (!response.ok) {
+    await disableButtons(false);
     throw new Error(`HTTP error! status: ${response.status}`);
   }
 
   const responseBody = await response.text();
   console.log('Response body:', responseBody);
 
-  await browser.storage.sync.set({
-    disableButtons: false,
-  });
-  browser.runtime.sendMessage({
-    action: 'disableButtons',
-    shouldDisable: false,
-  });
-
+  await disableButtons(false);
   return JSON.parse(responseBody);
 }
 
@@ -166,6 +168,7 @@ async function setUserInfo() {
     });
     username = response.username;
     userId = response.userId;
+
     if (!username || !userId) {
       throw new Error('Username not found - please log in to LeetCode');
     }
@@ -204,6 +207,7 @@ async function setUserInfo() {
 
 async function getUserInfo(shouldRefresh) {
   const { currentUser } = await browser.storage.sync.get('currentUser');
+  const { disableButtons } = await browser.storage.sync.get('disableButtons');
 
   if (!currentUser || shouldRefresh) {
     await setUserInfo();
@@ -214,16 +218,22 @@ async function getUserInfo(shouldRefresh) {
       return {
         username: refreshedUser.username,
         completedProblems: Object.values(refreshedUser.completedProblems),
+        disableButtons: disableButtons,
       };
     }
 
     console.log('User not initialized');
-    return { username: null, completedProblems: [] };
+    return {
+      username: null,
+      completedProblems: [],
+      disableButtons: disableButtons,
+    };
   }
 
   return {
     username: currentUser.username,
     completedProblems: Object.values(currentUser.completedProblems),
+    disableButtons: disableButtons,
   };
 }
 
