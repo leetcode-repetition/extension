@@ -95,8 +95,11 @@ function initializeApiKeyTableCountdown(timeLeft) {
   }
 
   function updateCountdown() {
-    document.getElementById('problem-table-content').innerHTML =
-      `<p>Initializing API key!<br>Check again in ${timeLeft} seconds!</p>`;
+    document.getElementById('problem-table-content').innerHTML = `<p>
+    Initializing your API key!<br>
+    Check here again in ${timeLeft} seconds!<br>
+    NOTE: Once your API key is set up you won't have to wait like this anymore!
+  </p>`;
     timeLeft--;
     if (timeLeft >= 0) {
       setTimeout(updateCountdown, 1000);
