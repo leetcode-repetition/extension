@@ -89,15 +89,31 @@ function createRowElement(row) {
   return problemDiv;
 }
 
+function initializeApiKeyTableCountdown(timeLeft) {
+  if (timeLeft <= 0) {
+    return;
+  }
+
+  function updateCountdown() {
+    document.getElementById('problem-table-content').innerHTML =
+      `<p>Initializing API key!<br>Check again in ${timeLeft} seconds!</p>`;
+    timeLeft--;
+    if (timeLeft >= 0) {
+      setTimeout(updateCountdown, 1000);
+    }
+  }
+
+  updateCountdown();
+}
+
 function initializeEmptyTable() {
-  document.getElementById('loading').display = 'none';
   document.getElementById('problem-table-content').innerHTML =
     '<p>No problems found. Complete problems to populate the table!</p>';
   document.getElementById('delete-all-btn').style.display = 'none';
   document.getElementById('refresh-btn').style.marginLeft = 'auto';
 }
 
-function createTable(problems, disableButtons) {
+function createTable(problems, disableButtons, timeSinceApiKeyCreation) {
   console.log('Creating table element');
   const tableElement = document.getElementById('problem-table-content');
   console.log(problems);
@@ -113,28 +129,12 @@ function createTable(problems, disableButtons) {
     tableElement.appendChild(table);
 
     setupDeleteButtons(disableButtons);
+  } else if (29 - timeSinceApiKeyCreation > 0) {
+    initializeApiKeyTableCountdown(29 - timeSinceApiKeyCreation);
   } else {
     initializeEmptyTable();
   }
 }
-
-// function createLoadingGif() {
-//   console.log('Creating loading gif');
-//   const tableElement = document.getElementById('problem-table');
-//   const video = document.createElement('video');
-
-//   video.src = './loading.webm';
-//   video.autoplay = true;
-//   video.loop = false;
-//   video.muted = true;
-//   video.playsinline = true;
-
-//   video.style.display = 'block';
-//   video.style.margin = '0 auto';
-
-//   tableElement.innerHTML = '';
-//   tableElement.appendChild(video);
-// }
 
 function deleteProblem(event) {
   console.log('Delete button pressed');
@@ -178,7 +178,6 @@ function callGetUserInfo(shouldRefresh) {
 
   if (!currentUser || shouldRefresh) {
     document.getElementById('problem-table-content').innerHTML = '';
-    document.getElementById('loading').display = 'block';
   }
 
   browser.runtime
@@ -186,12 +185,16 @@ function callGetUserInfo(shouldRefresh) {
     .then((response) => {
       console.log('Received response:', response);
       setUsernameElement(response.username);
-      createTable(response.completedProblems, response.disableButtons);
+      createTable(
+        response.completedProblems,
+        response.disableButtons,
+        Math.floor((Date.now() - response.apiKeyCreationTime) / 1000)
+      );
     });
 }
 
 function setAllButtonsDisabled(disableButtons) {
-  console.log(`Setting button clickability to ${disableButtons}`);
+  console.log(`Setting button clickability to ${!disableButtons}`);
   const container = document.getElementById('container');
   const buttons = container.querySelectorAll('button');
   buttons.forEach((button) => {
@@ -211,6 +214,14 @@ browser.runtime.onMessage.addListener((message, sender, sendResponse) => {
 
   if (message.action === 'disableButtons') {
     setAllButtonsDisabled(message.disableButtons);
+    sendResponse({ success: true });
+  }
+  if (message.action === 'createTable') {
+    createTable(
+      message.problems,
+      message.disableButtons,
+      message.timeSinceApiKeyCreation
+    );
     sendResponse({ success: true });
   }
 

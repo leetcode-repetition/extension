@@ -5,7 +5,7 @@ async function disableButtons(state) {
     disableButtons: state,
   });
   try {
-    browser.runtime.sendMessage({
+    await browser.runtime.sendMessage({
       action: 'disableButtons',
       disableButtons: state,
     });
@@ -181,11 +181,13 @@ async function setUserInfo() {
   await sendToAPI(`create-key?userId=${userId}`, 'POST', null)
     .then(async (response) => {
       console.log('Obtained new API key: ', response.apiKey);
+      const apiKeyCreationTime = Date.now();
       await browser.storage.sync.set({
         currentUser: {
           username: username,
           userId: userId,
           apiKey: response.apiKey,
+          apiKeyCreationTime: apiKeyCreationTime,
           completedProblems: {},
         },
       });
@@ -195,11 +197,40 @@ async function setUserInfo() {
     });
 
   // give API key time to propagate
-  await delay(20000);
+  const { currentUser } = await browser.storage.sync.get('currentUser');
+  await disableButtons(true);
+  try {
+    await browser.runtime.sendMessage({
+      action: 'createTable',
+      problems: [],
+      disableButtons: true,
+      timeSinceApiKeyCreation: Math.floor(
+        (Date.now() - currentUser.apiKeyCreationTime) / 1000
+      ),
+    });
+  } catch {
+    console.log('Extension tab not open!');
+  }
+  console.log('Waiting a minute to allow the API key to propagate through AWS');
+  await delay(30000);
+  await disableButtons(false);
 
   try {
     const problemsObject = await fetchAndUpdateUserProblems(userId);
     console.log('Table Response:', problemsObject);
+    const { currentUser } = await browser.storage.sync.get('currentUser');
+    try {
+      await browser.runtime.sendMessage({
+        action: 'createTable',
+        problems: currentUser.completedProblems,
+        disableButtons: false,
+        timeSinceApiKeyCreation: Math.floor(
+          (Date.now() - currentUser.apiKeyCreationTime) / 1000
+        ),
+      });
+    } catch {
+      console.log('Extension tab not open!');
+    }
   } catch (error) {
     console.error('Error getting problem table:', error);
   }
@@ -219,6 +250,7 @@ async function getUserInfo(shouldRefresh) {
         username: refreshedUser.username,
         completedProblems: Object.values(refreshedUser.completedProblems),
         disableButtons: disableButtons,
+        apiKeyCreationTime: currentUser.apiKeyCreationTime,
       };
     }
 
@@ -227,6 +259,7 @@ async function getUserInfo(shouldRefresh) {
       username: null,
       completedProblems: [],
       disableButtons: disableButtons,
+      apiKeyCreationTime: currentUser.apiKeyCreationTime,
     };
   }
 
@@ -234,6 +267,7 @@ async function getUserInfo(shouldRefresh) {
     username: currentUser.username,
     completedProblems: Object.values(currentUser.completedProblems),
     disableButtons: disableButtons,
+    apiKeyCreationTime: currentUser.apiKeyCreationTime,
   };
 }
 
