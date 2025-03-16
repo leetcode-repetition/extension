@@ -109,14 +109,19 @@ function initializeApiKeyTableCountdown(timeLeft) {
     return;
   }
   document.getElementById('delete-all-btn').style.display = 'none';
+  document.getElementById('refresh-btn').style.marginLeft = 'auto';
 
+  window.countdownActive = true;
   function updateCountdown() {
+    if (!window.countdownActive) {
+      return;
+    }
     document.getElementById('problem-table-content').innerHTML = `<p>
     Initializing your API key...<br>
     Check here again in ${timeLeft} seconds!<br>
   </p>`;
     timeLeft--;
-    if (timeLeft >= 0) {
+    if (timeLeft >= 0 && window.countdownActive) {
       setTimeout(updateCountdown, 1000);
     }
   }
@@ -144,8 +149,8 @@ function createTable(problems, disableButtons, timeSinceApiKeyCreation) {
     tableElement.innerHTML = '';
     tableElement.appendChild(table);
     setupDeleteButtons(disableButtons);
-  } else if (27 - timeSinceApiKeyCreation > 0) {
-    initializeApiKeyTableCountdown(27 - timeSinceApiKeyCreation);
+  } else if (35 - timeSinceApiKeyCreation > 0 && !window.countdownCancelled) {
+    initializeApiKeyTableCountdown(35 - timeSinceApiKeyCreation);
   } else {
     initializeEmptyTable();
   }
@@ -196,7 +201,7 @@ async function callGetUserInfo(shouldRefresh) {
     action: 'getUserInfo',
     shouldRefresh: shouldRefresh,
   });
-  console.log('Received response:', response);
+  console.log(response);
   setUsernameElement(response.username);
   createTable(
     response.completedProblems,
@@ -206,7 +211,7 @@ async function callGetUserInfo(shouldRefresh) {
 }
 
 browser.runtime.onMessage.addListener((message, sender, sendResponse) => {
-  console.log('Received message:', message);
+  console.log('Extension received message:', message);
 
   if (message.action === 'disableButtons') {
     const success = setAllButtonsDisabled(message.disableButtons);
@@ -224,6 +229,10 @@ browser.runtime.onMessage.addListener((message, sender, sendResponse) => {
   if (message.action === 'setUsername') {
     const success = setUsernameElement(message.username);
     sendResponse({ success: success });
+  }
+  if (message.action === 'cancelCountdown') {
+    window.countdownActive = false;
+    sendResponse({ success: true });
   }
 
   return true;

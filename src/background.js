@@ -98,13 +98,14 @@ async function setUserInfo() {
 
   const { currentUser } = await browser.storage.sync.get('currentUser');
   await sendMessageToExtensionTab({
+    action: 'cancelCountdown',
+  });
+  await sendMessageToExtensionTab({
     action: 'createTable',
     username: currentUser.username,
     problems: currentUser.completedProblems,
     disableButtons: false,
-    timeSinceApiKeyCreation: Math.floor(
-      (Date.now() - currentUser.apiKeyCreationTime) / 1000
-    ),
+    timeSinceApiKeyCreation: 9999999,
   });
 
   return true;
@@ -225,6 +226,7 @@ async function getUserInfo(shouldRefresh) {
 
   if (!currentUser || shouldRefresh) {
     const success = await setUserInfo();
+    ({ currentUser } = await browser.storage.sync.get('currentUser'));
     if (!success) {
       console.log('User not initialized');
       return {
@@ -279,13 +281,13 @@ async function deleteAllUserCompletedProblems() {
 }
 
 browser.runtime.onMessage.addListener((message, sender, sendResponse) => {
-  console.log('Received message:', message);
+  console.log('Background received message:', message);
 
   if (message.action === 'getUserInfo') {
     (async () => {
       const userInfo = await getUserInfo(message.shouldRefresh);
       console.log(userInfo);
-      sendResponse({ userInfo: userInfo });
+      sendResponse(userInfo);
     })();
   }
   if (message.action === 'problemCompleted') {
