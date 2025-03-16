@@ -2,6 +2,7 @@ function setUsernameElement(username) {
   document.getElementById('username').textContent = username
     ? username
     : 'Login Needed!';
+  return true;
 }
 
 function setupRefreshButton(disableButtons) {
@@ -37,6 +38,7 @@ function setAllButtonsDisabled(disableButtons) {
     button.style.opacity = disableButtons ? '0.5' : '1';
     button.style.cursor = disableButtons ? 'not-allowed' : 'pointer';
   });
+  return true;
 }
 
 function createRowElement(row) {
@@ -147,6 +149,8 @@ function createTable(problems, disableButtons, timeSinceApiKeyCreation) {
   } else {
     initializeEmptyTable();
   }
+
+  return true;
 }
 
 async function deleteProblem(event) {
@@ -156,31 +160,27 @@ async function deleteProblem(event) {
   const problemRow = target.closest('.problem');
   const problemTitleSlug = problemRow.querySelector('a').textContent;
 
-  try {
-    await browser.runtime.sendMessage({
-      action: 'deleteProblem',
-      titleSlug: problemTitleSlug,
-    });
-    problemRow.remove();
-    if (
-      document.getElementById('problem-table-content').children.length === 0
-    ) {
-      initializeEmptyTable();
-    }
-  } catch (error) {
-    console.log(`Error deleting problem! ERROR: ${error}`);
+  const response = await browser.runtime.sendMessage({
+    action: 'deleteProblem',
+    titleSlug: problemTitleSlug,
+  });
+  if (!response.success) {
+    return;
+  }
+
+  problemRow.remove();
+  if (document.getElementById('problem-table-content').children.length === 0) {
+    initializeEmptyTable();
   }
 }
 
 async function deleteAllProblems() {
   console.log('Delete all problems button pressed');
-  try {
-    await browser.runtime.sendMessage({
-      action: 'deleteAllProblems',
-    });
+  response = await browser.runtime.sendMessage({
+    action: 'deleteAllProblems',
+  });
+  if (response.success) {
     initializeEmptyTable();
-  } catch (error) {
-    console.log(`Error deleting all problems! ERROR: ${error}`);
   }
 }
 
@@ -192,40 +192,38 @@ async function callGetUserInfo(shouldRefresh) {
     document.getElementById('problem-table-content').innerHTML = '';
   }
 
-  try {
-    respone = await browser.runtime.sendMessage({
-      action: 'getUserInfo',
-      shouldRefresh: shouldRefresh,
-    });
-    console.log('Received response:', response);
-    setUsernameElement(response.username);
-    createTable(
-      response.completedProblems,
-      response.disableButtons,
-      Math.floor((Date.now() - response.apiKeyCreationTime) / 1000)
-    );
-  } catch (error) {
-    console.log(`Error getting user info! ERROR: ${error}`);
-  }
+  const response = await browser.runtime.sendMessage({
+    action: 'getUserInfo',
+    shouldRefresh: shouldRefresh,
+  });
+  console.log('Received response:', response);
+  setUsernameElement(response.username);
+  createTable(
+    response.completedProblems,
+    response.disableButtons,
+    Math.floor((Date.now() - response.apiKeyCreationTime) / 1000)
+  );
 }
 
 browser.runtime.onMessage.addListener((message, sender, sendResponse) => {
   console.log('Received message:', message);
 
   if (message.action === 'disableButtons') {
-    setAllButtonsDisabled(message.disableButtons);
-    sendResponse({ success: true });
+    const success = setAllButtonsDisabled(message.disableButtons);
+    sendResponse({ success: success });
   }
   if (message.action === 'createTable') {
-    createTable(
+    setUsernameElement(message.username);
+    const success = createTable(
       message.problems,
       message.disableButtons,
       message.timeSinceApiKeyCreation
     );
-    sendResponse({ success: true });
+    sendResponse({ success: success });
   }
   if (message.action === 'setUsername') {
-    setUsernameElement(message.username);
+    const success = setUsernameElement(message.username);
+    sendResponse({ success: success });
   }
 
   return true;

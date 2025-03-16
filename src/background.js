@@ -1,20 +1,4 @@
-const delay = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
-
-async function disableButtons(state) {
-  await browser.storage.sync.set({
-    disableButtons: state,
-  });
-  try {
-    await browser.runtime.sendMessage({
-      action: 'disableButtons',
-      disableButtons: state,
-    });
-  } catch (error) {
-    console.log('Extension tab not open!');
-  }
-}
-
-async function sendToAPI(endpoint, method, requestData) {
+async function sendToAPI(endpoint, method, requestData = null) {
   const { currentUser } = await browser.storage.sync.get('currentUser');
   const url = `https://3d6q6gdc2a.execute-api.us-east-2.amazonaws.com/prod/v1/${endpoint}`;
 
@@ -29,27 +13,110 @@ async function sendToAPI(endpoint, method, requestData) {
   if (requestData) {
     fetchOptions.body = JSON.stringify(requestData);
   }
+
   await disableButtons(true);
-
   const response = await fetch(url, fetchOptions);
-  console.log('AWS Response: ', response);
-  console.log('AWS Response status:', response.status);
-  console.log('AWS Response headers:', Object.fromEntries(response.headers));
-
   await disableButtons(false);
+
   if (!response.ok) {
     throw new Error(`HTTP error! status: ${response.status}`);
   }
-
   const responseBody = await response.text();
   console.log('Response body:', responseBody);
   return JSON.parse(responseBody);
 }
 
+async function sendMessageToExtensionTab(message) {
+  try {
+    await browser.runtime.sendMessage(message);
+  } catch (error) {
+    console.log('Extension tab not open!');
+  }
+}
+
+async function disableButtons(state) {
+  await browser.storage.sync.set({
+    disableButtons: state,
+  });
+  await sendMessageToExtensionTab({
+    action: 'disableButtons',
+    disableButtons: state,
+  });
+}
+
+async function getUsernameAndUserId() {
+  const tabs = await browser.tabs.query({ active: true, currentWindow: true });
+  const response = await browser.tabs.sendMessage(tabs[0].id, {
+    action: 'getUsernameAndUserId',
+  });
+  return { username: response.username, userId: response.userId };
+}
+
+async function setUserInfo() {
+  const { username, userId } = await getUsernameAndUserId();
+  if (!username || !userId) {
+    console.log('Username not found - please log in to LeetCode!');
+    return false;
+  }
+
+  console.log('Received username and userId');
+  const apiKeyCreationTime = Date.now();
+  try {
+    const response = await sendToAPI(`create-key?userId=${userId}`, 'POST');
+    await browser.storage.sync.set({
+      currentUser: {
+        username: username,
+        userId: userId,
+        apiKey: response.apiKey,
+        apiKeyCreationTime: apiKeyCreationTime,
+        completedProblems: {},
+      },
+    });
+  } catch (error) {
+    console.error(`Error obtaining API key! ERROR: ${error}`);
+    return false;
+  }
+
+  // give API key time to propagate through AWS (~30 seconds)
+  await disableButtons(true);
+  await sendMessageToExtensionTab({
+    action: 'createTable',
+    username: username,
+    problems: [],
+    disableButtons: true,
+    timeSinceApiKeyCreation: Math.floor(
+      (Date.now() - apiKeyCreationTime) / 1000
+    ),
+  });
+  await new Promise((resolve) => setTimeout(resolve, 30000));
+  await disableButtons(false);
+
+  const success = await fetchAndUpdateUserProblems(userId);
+  if (!success) {
+    return false;
+  }
+
+  const { currentUser } = await browser.storage.sync.get('currentUser');
+  await sendMessageToExtensionTab({
+    action: 'createTable',
+    username: currentUser.username,
+    problems: currentUser.completedProblems,
+    disableButtons: false,
+    timeSinceApiKeyCreation: Math.floor(
+      (Date.now() - currentUser.apiKeyCreationTime) / 1000
+    ),
+  });
+
+  return true;
+}
+
 async function addUserCompletedProblem(problem) {
   let { currentUser } = await browser.storage.sync.get('currentUser');
   if (!currentUser) {
-    await setUserInfo();
+    const success = await setUserInfo();
+    if (!success) {
+      return false;
+    }
     ({ currentUser } = await browser.storage.sync.get('currentUser'));
   }
 
@@ -60,7 +127,6 @@ async function addUserCompletedProblem(problem) {
     repeatDate: problem.repeatDate,
     lastCompletionDate: problem.lastCompletionDate,
   };
-
   console.log('User:', userId);
   console.log('Problem Data:', completedProblem);
 
@@ -70,8 +136,8 @@ async function addUserCompletedProblem(problem) {
       'POST',
       completedProblem
     );
-
     console.log('Successfully inserted row:', response);
+
     const problems = Object.values(currentUser.completedProblems);
     problems.push(completedProblem);
 
@@ -91,10 +157,10 @@ async function addUserCompletedProblem(problem) {
         completedProblems: updatedProblems,
       },
     });
-    return response;
+    return true;
   } catch (error) {
     console.error(`Error updating problems! ERROR: ${error}`);
-    throw error;
+    return false;
   }
 }
 
@@ -103,7 +169,7 @@ async function deleteUserCompletedProblem(problemTitleSlug) {
   const endpoint = `delete-row?userId=${currentUser.userId}&problemTitleSlug=${problemTitleSlug}`;
 
   try {
-    const response = await sendToAPI(endpoint, 'DELETE', null);
+    const response = await sendToAPI(endpoint, 'DELETE');
     console.log('Row deleted:', response);
 
     const updatedProblems = { ...currentUser.completedProblems };
@@ -115,10 +181,10 @@ async function deleteUserCompletedProblem(problemTitleSlug) {
         completedProblems: updatedProblems,
       },
     });
-    return response;
+    return true;
   } catch (error) {
-    console.error(`Error deleting row! ERROR: ${error}`);
-    return error;
+    console.error(`Error deleting problem! ERROR: ${error}`);
+    return false;
   }
 }
 
@@ -126,12 +192,7 @@ async function fetchAndUpdateUserProblems(userId) {
   const { currentUser } = await browser.storage.sync.get('currentUser');
 
   try {
-    const tableResponse = await sendToAPI(
-      `get-table?userId=${userId}`,
-      'GET',
-      null
-    );
-
+    const tableResponse = await sendToAPI(`get-table?userId=${userId}`, 'GET');
     const problemsObject = tableResponse.table
       .map(({ link, titleSlug, repeatDate, lastCompletionDate }) => ({
         link,
@@ -151,123 +212,28 @@ async function fetchAndUpdateUserProblems(userId) {
         completedProblems: problemsObject,
       },
     });
-
-    return problemsObject;
+    return true;
   } catch (error) {
     console.log(`Error getting problems table! ERROR: ${error}`);
-    return {};
-  }
-}
-
-async function setUserInfo() {
-  const tabs = await browser.tabs.query({ active: true, currentWindow: true });
-  let username = null;
-  let userId = null;
-
-  try {
-    const response = await browser.tabs.sendMessage(tabs[0].id, {
-      action: 'getUsernameAndUserId',
-    });
-    username = response.username;
-    userId = response.userId;
-
-    if (!username || !userId) {
-      throw new Error('Username not found - please log in to LeetCode');
-    }
-    console.log('Received username and userId');
-  } catch (error) {
-    console.log(`User not signed in! ERROR: ${error}`);
-    return;
-  }
-
-  try {
-    const response = await sendToAPI(
-      `create-key?userId=${userId}`,
-      'POST',
-      null
-    );
-    console.log('Obtained new API key: ', response.apiKey);
-    const apiKeyCreationTime = Date.now();
-    await browser.storage.sync.set({
-      currentUser: {
-        username: username,
-        userId: userId,
-        apiKey: response.apiKey,
-        apiKeyCreationTime: apiKeyCreationTime,
-        completedProblems: {},
-      },
-    });
-  } catch (error) {
-    console.error(`Error obtaining API key! ERROR: ${error}`);
-  }
-
-  // give API key time to propagate
-  const { currentUser } = await browser.storage.sync.get('currentUser');
-  await disableButtons(true);
-  try {
-    await browser.runtime.sendMessage({
-      action: 'createTable',
-      problems: [],
-      disableButtons: true,
-      timeSinceApiKeyCreation: Math.floor(
-        (Date.now() - currentUser.apiKeyCreationTime) / 1000
-      ),
-    });
-  } catch (error) {
-    console.log('Extension tab not open!');
-  }
-  console.log(
-    'Waiting a 30 seconds to allow the API key to propagate through AWS'
-  );
-  await delay(30000);
-  await disableButtons(false);
-
-  try {
-    const problemsObject = await fetchAndUpdateUserProblems(userId);
-    console.log('Table Response:', problemsObject);
-    const { currentUser } = await browser.storage.sync.get('currentUser');
-    try {
-      await browser.runtime.sendMessage({
-        action: 'createTable',
-        problems: currentUser.completedProblems,
-        disableButtons: false,
-        timeSinceApiKeyCreation: Math.floor(
-          (Date.now() - currentUser.apiKeyCreationTime) / 1000
-        ),
-      });
-    } catch (error) {
-      console.log('Extension tab not open!');
-    }
-  } catch (error) {
-    console.error('Error getting problem table:', error);
+    return false;
   }
 }
 
 async function getUserInfo(shouldRefresh) {
-  const { currentUser } = await browser.storage.sync.get('currentUser');
+  let { currentUser } = await browser.storage.sync.get('currentUser');
   const { disableButtons } = await browser.storage.sync.get('disableButtons');
 
   if (!currentUser || shouldRefresh) {
-    await setUserInfo();
-    const { currentUser: refreshedUser } =
-      await browser.storage.sync.get('currentUser');
-
-    if (refreshedUser) {
+    const success = await setUserInfo();
+    if (!success) {
+      console.log('User not initialized');
       return {
-        username: refreshedUser.username,
-        completedProblems: Object.values(refreshedUser.completedProblems),
+        username: null,
+        completedProblems: [],
         disableButtons: disableButtons,
         apiKeyCreationTime: currentUser.apiKeyCreationTime,
       };
     }
-
-    console.log('User not initialized');
-    return {
-      username: null,
-      completedProblems: [],
-      disableButtons: disableButtons,
-      apiKeyCreationTime: currentUser.apiKeyCreationTime,
-    };
   }
 
   return {
@@ -297,19 +263,19 @@ async function deleteAllUserCompletedProblems() {
   const { currentUser } = await browser.storage.sync.get('currentUser');
   const endpoint = `delete-table?userId=${currentUser.userId}`;
 
-  return await sendToAPI(endpoint, 'DELETE', null)
-    .then(async (response) => {
-      console.log('All Problems Deleted:', response);
-      await browser.storage.sync.set({
-        currentUser: {
-          ...currentUser,
-          completedProblems: {},
-        },
-      });
-    })
-    .catch((error) => {
-      console.error(`Error deleting ALL problems! ERROR: ${error}`);
+  try {
+    await sendToAPI(endpoint, 'DELETE');
+    await browser.storage.sync.set({
+      currentUser: {
+        ...currentUser,
+        completedProblems: {},
+      },
     });
+    return true;
+  } catch (error) {
+    console.error(`Error deleting ALL problems! ERROR: ${error}`);
+    return false;
+  }
 }
 
 browser.runtime.onMessage.addListener((message, sender, sendResponse) => {
@@ -319,32 +285,37 @@ browser.runtime.onMessage.addListener((message, sender, sendResponse) => {
     (async () => {
       const userInfo = await getUserInfo(message.shouldRefresh);
       console.log(userInfo);
-      sendResponse(userInfo);
+      sendResponse({ userInfo: userInfo });
     })();
   }
   if (message.action === 'problemCompleted') {
     (async () => {
-      console.log('Problem completed:', message.data);
-      await addUserCompletedProblem(message.data);
+      const success = await addUserCompletedProblem(message.data);
+      sendResponse({ success: success });
     })();
   }
   if (message.action === 'deleteProblem') {
     console.log('Deleting problem:', message.titleSlug);
-    deleteUserCompletedProblem(message.titleSlug).then((result) => {
-      sendResponse({ success: true, result });
-    });
-  }
-  if (message.action === 'checkIfProblemCompletedInLastDay') {
-    console.log('Checking if problem is already completed:', message.titleSlug);
-    checkIfProblemCompletedInLastDay(message.titleSlug).then((isCompleted) => {
-      sendResponse({ isCompleted });
-    });
+    (async () => {
+      const success = await deleteUserCompletedProblem(message.titleSlug);
+      sendResponse({ success: success });
+    })();
   }
   if (message.action === 'deleteAllProblems') {
     console.log('Deleting ALL problems');
-    deleteAllUserCompletedProblems().then((result) => {
-      sendResponse({ success: true, result });
-    });
+    (async () => {
+      const success = await deleteAllUserCompletedProblems();
+      sendResponse({ success: success });
+    })();
+  }
+  if (message.action === 'checkIfProblemCompletedInLastDay') {
+    console.log('Checking if problem is already completed:', message.titleSlug);
+    (async () => {
+      const problemCompletedInLastDay = checkIfProblemCompletedInLastDay(
+        message.titleSlug
+      );
+      sendResponse({ problemCompletedInLastDay: problemCompletedInLastDay });
+    })();
   }
 
   return true;

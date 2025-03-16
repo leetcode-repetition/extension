@@ -190,7 +190,7 @@ window.addEventListener('message', function (event) {
         })
         .then((response) => {
           console.log('Recieved checkIfProblemCompletedInLastDay response.');
-          if (!response.isCompleted) {
+          if (!response.problemCompletedInLastDay) {
             console.log('Problem is newly completed!!!');
             const popupContainer = document.createElement('div');
             popupContainer.innerHTML = createPopupHTML();

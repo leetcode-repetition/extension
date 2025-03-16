@@ -8,37 +8,47 @@ async function getLeetCodeUsernameAndUserId() {
   const csrftoken = cookies['csrftoken'];
   const LEETCODE_SESSION = cookies['LEETCODE_SESSION'];
 
-  const response = await fetch('https://leetcode.com/graphql', {
-    method: 'POST',
-    headers: {
-      'Content-Type': 'application/json',
-      'x-csrftoken': csrftoken,
-      cookie: `csrftoken=${csrftoken}; LEETCODE_SESSION=${LEETCODE_SESSION}`,
-    },
-    body: JSON.stringify({
-      query: `
-        query {
-          userStatus {
-            userId
-            username
+  try {
+    const response = await fetch('https://leetcode.com/graphql', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'x-csrftoken': csrftoken,
+        cookie: `csrftoken=${csrftoken}; LEETCODE_SESSION=${LEETCODE_SESSION}`,
+      },
+      body: JSON.stringify({
+        query: `
+          query {
+            userStatus {
+              userId
+              username
+            }
           }
-        }
-      `,
-    }),
-  });
+        `,
+      }),
+    });
 
-  const data = await response.json();
-  return data.data.userStatus;
+    const data = await response.json();
+    return data.data.userStatus;
+  } catch (error) {
+    console.log(`Error getting user info from leetcode! ERROR: ${error}`);
+    return {
+      userId: '',
+      username: '',
+    };
+  }
 }
 
 browser.runtime.onMessage.addListener((message, sender, sendResponse) => {
   console.log('Received message:', message);
 
   if (message.action === 'getUsernameAndUserId') {
-    getLeetCodeUsernameAndUserId().then((userInfo) => {
+    (async () => {
+      const userInfo = getLeetCodeUsernameAndUserId();
       console.log(userInfo);
       sendResponse(userInfo);
-    });
+    })();
   }
+
   return true;
 });
