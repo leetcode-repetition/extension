@@ -1,60 +1,48 @@
 function setUsernameElement(username) {
-  if (username) {
-    document.getElementById('username').textContent = username;
-  } else {
-    document.getElementById('username').textContent = 'Login Needed!';
-  }
+  document.getElementById('username').textContent = username
+    ? username
+    : 'Login Needed!';
 }
 
 function setupRefreshButton(disableButtons) {
   console.log('Setting up refresh button');
   const refreshButton = document.getElementById('refresh-btn');
+
   refreshButton.disabled = disableButtons;
-  refreshButton.onclick = () => {
+  refreshButton.onclick = async () => {
     console.log('Refresh button clicked');
-    callGetUserInfo(true);
+    await callGetUserInfo(true);
   };
 }
 
 function setupDeleteButtons(disableButtons) {
   console.log('Setting up delete buttons');
   const buttons = document.querySelectorAll('.delete-btn');
+
   console.log(`Setting up ${buttons.length} delete button(s)`);
   buttons.forEach((button) => {
     button.disabled = disableButtons;
-    button.onclick = (e) => {
-      deleteProblem(e);
+    button.onclick = async (e) => {
+      await deleteProblem(e);
     };
   });
 }
 
-function createDeleteAllButton() {
-  console.log('Creating delete all button');
-  const element = document.getElementById('delete-all-btn');
-  element.style.display = 'flex';
-  element.innerHTML = '';
-
-  const text = document.createElement('p');
-  const img = document.createElement('img');
-
-  element.id = 'delete-all-btn';
-  text.textContent = 'Delete All';
-  img.src = './trash.svg';
-
-  element.appendChild(text);
-  element.appendChild(img);
-
-  const refreshBtn = document.getElementById('refresh-btn');
-  refreshBtn.style.marginLeft = '0';
-
-  element.onclick = () => {
-    deleteAllProblems();
-  };
+function setAllButtonsDisabled(disableButtons) {
+  console.log(`Setting button clickability to ${!disableButtons}`);
+  const container = document.getElementById('container');
+  const buttons = container.querySelectorAll('button');
+  buttons.forEach((button) => {
+    button.disabled = disableButtons;
+    button.style.opacity = disableButtons ? '0.5' : '1';
+    button.style.cursor = disableButtons ? 'not-allowed' : 'pointer';
+  });
 }
 
 function createRowElement(row) {
   console.log('Creating row element:');
   console.log(row);
+
   const problemDiv = document.createElement('div');
   const problemDataDiv = document.createElement('div');
   const link = document.createElement('a');
@@ -89,16 +77,41 @@ function createRowElement(row) {
   return problemDiv;
 }
 
+function createDeleteAllButton() {
+  console.log('Creating delete all button');
+  const element = document.getElementById('delete-all-btn');
+
+  element.style.display = 'flex';
+  element.innerHTML = '';
+
+  const text = document.createElement('p');
+  const img = document.createElement('img');
+
+  element.id = 'delete-all-btn';
+  text.textContent = 'Delete All';
+  img.src = './trash.svg';
+
+  element.appendChild(text);
+  element.appendChild(img);
+
+  const refreshBtn = document.getElementById('refresh-btn');
+  refreshBtn.style.marginLeft = '0';
+
+  element.onclick = async () => {
+    await deleteAllProblems();
+  };
+}
+
 function initializeApiKeyTableCountdown(timeLeft) {
   if (timeLeft <= 0) {
     return;
   }
+  document.getElementById('delete-all-btn').style.display = 'none';
 
   function updateCountdown() {
     document.getElementById('problem-table-content').innerHTML = `<p>
-    Initializing your API key!<br>
+    Initializing your API key...<br>
     Check here again in ${timeLeft} seconds!<br>
-    NOTE: Once your API key is set up you won't have to wait like this anymore!
   </p>`;
     timeLeft--;
     if (timeLeft >= 0) {
@@ -119,98 +132,82 @@ function initializeEmptyTable() {
 function createTable(problems, disableButtons, timeSinceApiKeyCreation) {
   console.log('Creating table element');
   const tableElement = document.getElementById('problem-table-content');
-  console.log(problems);
   setupRefreshButton(disableButtons);
 
   if (problems && problems.length > 0) {
     createDeleteAllButton();
-
     const table = document.createDocumentFragment();
     problems.forEach((row) => table.appendChild(createRowElement(row)));
 
     tableElement.innerHTML = '';
     tableElement.appendChild(table);
-
     setupDeleteButtons(disableButtons);
-  } else if (29 - timeSinceApiKeyCreation > 0) {
-    initializeApiKeyTableCountdown(29 - timeSinceApiKeyCreation);
+  } else if (27 - timeSinceApiKeyCreation > 0) {
+    initializeApiKeyTableCountdown(27 - timeSinceApiKeyCreation);
   } else {
     initializeEmptyTable();
   }
 }
 
-function deleteProblem(event) {
+async function deleteProblem(event) {
   console.log('Delete button pressed');
   const target =
     event.target.tagName === 'IMG' ? event.target.parentElement : event.target;
   const problemRow = target.closest('.problem');
   const problemTitleSlug = problemRow.querySelector('a').textContent;
 
-  browser.runtime
-    .sendMessage({
+  try {
+    await browser.runtime.sendMessage({
       action: 'deleteProblem',
       titleSlug: problemTitleSlug,
-    })
-    .then(() => {
-      problemRow.remove();
-      if (
-        document.getElementById('problem-table-content').children.length === 0
-      ) {
-        initializeEmptyTable();
-      }
     });
-}
-
-function deleteAllProblems() {
-  console.log('Delete all problems button pressed');
-  browser.runtime
-    .sendMessage({
-      action: 'deleteAllProblems',
-    })
-    .then(() => {
+    problemRow.remove();
+    if (
+      document.getElementById('problem-table-content').children.length === 0
+    ) {
       initializeEmptyTable();
-    });
+    }
+  } catch (error) {
+    console.log(`Error deleting problem! ERROR: ${error}`);
+  }
 }
 
-function callGetUserInfo(shouldRefresh) {
+async function deleteAllProblems() {
+  console.log('Delete all problems button pressed');
+  try {
+    await browser.runtime.sendMessage({
+      action: 'deleteAllProblems',
+    });
+    initializeEmptyTable();
+  } catch (error) {
+    console.log(`Error deleting all problems! ERROR: ${error}`);
+  }
+}
+
+async function callGetUserInfo(shouldRefresh) {
   console.log('Calling getUserInfo');
-  const currentUser = async () => {
-    const { currentUser } = await browser.storage.sync.get('currentUser');
-    return currentUser;
-  };
+  const { currentUser } = await browser.storage.sync.get('currentUser');
 
   if (!currentUser || shouldRefresh) {
     document.getElementById('problem-table-content').innerHTML = '';
   }
 
-  browser.runtime
-    .sendMessage({ action: 'getUserInfo', shouldRefresh: shouldRefresh })
-    .then((response) => {
-      console.log('Received response:', response);
-      setUsernameElement(response.username);
-      createTable(
-        response.completedProblems,
-        response.disableButtons,
-        Math.floor((Date.now() - response.apiKeyCreationTime) / 1000)
-      );
+  try {
+    respone = await browser.runtime.sendMessage({
+      action: 'getUserInfo',
+      shouldRefresh: shouldRefresh,
     });
+    console.log('Received response:', response);
+    setUsernameElement(response.username);
+    createTable(
+      response.completedProblems,
+      response.disableButtons,
+      Math.floor((Date.now() - response.apiKeyCreationTime) / 1000)
+    );
+  } catch (error) {
+    console.log(`Error getting user info! ERROR: ${error}`);
+  }
 }
-
-function setAllButtonsDisabled(disableButtons) {
-  console.log(`Setting button clickability to ${!disableButtons}`);
-  const container = document.getElementById('container');
-  const buttons = container.querySelectorAll('button');
-  buttons.forEach((button) => {
-    button.disabled = disableButtons;
-    button.style.opacity = disableButtons ? '0.5' : '1';
-    button.style.cursor = disableButtons ? 'not-allowed' : 'pointer';
-  });
-}
-
-document.addEventListener('DOMContentLoaded', async () => {
-  console.log('DOMContentLoaded event fired');
-  callGetUserInfo(false);
-});
 
 browser.runtime.onMessage.addListener((message, sender, sendResponse) => {
   console.log('Received message:', message);
@@ -227,8 +224,16 @@ browser.runtime.onMessage.addListener((message, sender, sendResponse) => {
     );
     sendResponse({ success: true });
   }
+  if (message.action === 'setUsername') {
+    setUsernameElement(message.username);
+  }
 
   return true;
+});
+
+document.addEventListener('DOMContentLoaded', async () => {
+  console.log('DOMContentLoaded event fired');
+  await callGetUserInfo(false);
 });
 
 window.addEventListener('unload', () => {
