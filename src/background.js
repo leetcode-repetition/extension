@@ -77,6 +77,7 @@ async function setUserInfo() {
     return false;
   }
 
+  let { currentUser } = await browser.storage.sync.get('currentUser');
   // give API key time to propagate through AWS (~30 seconds)
   await disableButtons(true);
   await sendMessageToExtensionTab({
@@ -96,7 +97,7 @@ async function setUserInfo() {
     return false;
   }
 
-  const { currentUser } = await browser.storage.sync.get('currentUser');
+  ({ currentUser } = await browser.storage.sync.get('currentUser'));
   await sendMessageToExtensionTab({
     action: 'cancelCountdown',
   });
@@ -233,7 +234,7 @@ async function getUserInfo(shouldRefresh) {
         username: null,
         completedProblems: [],
         disableButtons: disableButtons,
-        apiKeyCreationTime: currentUser.apiKeyCreationTime,
+        apiKeyCreationTime: -1,
       };
     }
   }
@@ -248,7 +249,6 @@ async function getUserInfo(shouldRefresh) {
 
 async function checkIfProblemCompletedInLastDay(titleSlug) {
   const { currentUser } = await browser.storage.sync.get('currentUser');
-
   if (!currentUser || !currentUser.completedProblems[titleSlug]) {
     return false;
   }
@@ -280,45 +280,31 @@ async function deleteAllUserCompletedProblems() {
   }
 }
 
-browser.runtime.onMessage.addListener((message, sender, sendResponse) => {
+browser.runtime.onMessage.addListener((message, sender) => {
   console.log('Background received message:', message);
 
   if (message.action === 'getUserInfo') {
-    (async () => {
-      const userInfo = await getUserInfo(message.shouldRefresh);
-      console.log(userInfo);
-      sendResponse(userInfo);
-    })();
+    return getUserInfo(message.shouldRefresh);
   }
   if (message.action === 'problemCompleted') {
-    (async () => {
-      const success = await addUserCompletedProblem(message.data);
-      sendResponse({ success: success });
-    })();
+    return addUserCompletedProblem(message.data).then((success) => ({
+      success,
+    }));
   }
   if (message.action === 'deleteProblem') {
     console.log('Deleting problem:', message.titleSlug);
-    (async () => {
-      const success = await deleteUserCompletedProblem(message.titleSlug);
-      sendResponse({ success: success });
-    })();
+    return deleteUserCompletedProblem(message.titleSlug).then((success) => ({
+      success,
+    }));
   }
   if (message.action === 'deleteAllProblems') {
     console.log('Deleting ALL problems');
-    (async () => {
-      const success = await deleteAllUserCompletedProblems();
-      sendResponse({ success: success });
-    })();
+    return deleteAllUserCompletedProblems().then((success) => ({ success }));
   }
   if (message.action === 'checkIfProblemCompletedInLastDay') {
     console.log('Checking if problem is already completed:', message.titleSlug);
-    (async () => {
-      const problemCompletedInLastDay = checkIfProblemCompletedInLastDay(
-        message.titleSlug
-      );
-      sendResponse({ problemCompletedInLastDay: problemCompletedInLastDay });
-    })();
+    return checkIfProblemCompletedInLastDay(message.titleSlug);
   }
 
-  return true;
+  return Promise.resolve(false);
 });

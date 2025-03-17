@@ -116,7 +116,6 @@ function initializeApiKeyTableCountdown(timeLeft) {
     if (!window.countdownActive) {
       return;
     }
-    console.log(`Time Left: ${timeLeft}`);
     document.getElementById('problem-table-content').innerHTML = `<p>
     Initializing your API key...<br>
     Check here again in ${timeLeft} seconds!<br>
@@ -150,8 +149,8 @@ function createTable(problems, disableButtons, timeSinceApiKeyCreation) {
     tableElement.innerHTML = '';
     tableElement.appendChild(table);
     setupDeleteButtons(disableButtons);
-  } else if (50 - timeSinceApiKeyCreation > 0 && !window.countdownCancelled) {
-    initializeApiKeyTableCountdown(50 - timeSinceApiKeyCreation);
+  } else if (30 - timeSinceApiKeyCreation > 0 && !window.countdownCancelled) {
+    initializeApiKeyTableCountdown(30 - timeSinceApiKeyCreation);
   } else {
     initializeEmptyTable();
   }
@@ -182,7 +181,7 @@ async function deleteProblem(event) {
 
 async function deleteAllProblems() {
   console.log('Delete all problems button pressed');
-  response = await browser.runtime.sendMessage({
+  const response = await browser.runtime.sendMessage({
     action: 'deleteAllProblems',
   });
   if (response.success) {
