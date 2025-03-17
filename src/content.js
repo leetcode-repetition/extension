@@ -44,9 +44,7 @@ browser.runtime.onMessage.addListener((message, sender, sendResponse) => {
 
   if (message.action === 'getUsernameAndUserId') {
     (async () => {
-      const userInfo = getLeetCodeUsernameAndUserId();
-      console.log(userInfo);
-      sendResponse(userInfo);
+      sendResponse(await getLeetCodeUsernameAndUserId());
     })();
   }
 
