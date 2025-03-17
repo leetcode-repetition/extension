@@ -149,8 +149,8 @@ function createTable(problems, disableButtons, timeSinceApiKeyCreation) {
     tableElement.innerHTML = '';
     tableElement.appendChild(table);
     setupDeleteButtons(disableButtons);
-  } else if (30 - timeSinceApiKeyCreation > 0 && !window.countdownCancelled) {
-    initializeApiKeyTableCountdown(30 - timeSinceApiKeyCreation);
+  } else if (35 - timeSinceApiKeyCreation > 0 && !window.countdownCancelled) {
+    initializeApiKeyTableCountdown(35 - timeSinceApiKeyCreation);
   } else {
     initializeEmptyTable();
   }
