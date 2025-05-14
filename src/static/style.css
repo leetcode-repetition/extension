@@ -157,3 +157,8 @@ iframe {
     display: none;
     margin: 0 auto;
 }
+
+#leetcode-logo {
+    width: auto !important;
+    height: 40px !important;
+}
