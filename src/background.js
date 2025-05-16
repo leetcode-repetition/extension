@@ -1,13 +1,23 @@
-async function sendToAPI(endpoint, method, requestData = null) {
+import { buildAuthUrl } from './auth.js';
+
+async function sendToAPI(
+  endpoint,
+  method,
+  requestData = null,
+  extraHeaders = {}
+) {
   const { currentUser } = await browser.storage.sync.get('currentUser');
-  const url = `https://3d6q6gdc2a.execute-api.us-east-2.amazonaws.com/prod/v1/${endpoint}`;
+  // const url = `https://3d6q6gdc2a.execute-api.us-east-2.amazonaws.com/prod/v1/${endpoint}`;
+  const url = `http://127.0.0.1:3000/v1/${endpoint}`;
 
   let fetchOptions = {
     method: method,
     headers: {
       'Content-Type': 'application/json',
       'X-Api-Key': currentUser ? currentUser.apiKey : '',
+      ...extraHeaders,
     },
+    credentials: 'include',
   };
 
   if (requestData) {
@@ -25,6 +35,59 @@ async function sendToAPI(endpoint, method, requestData = null) {
   console.log('Response body:', responseBody);
   return JSON.parse(responseBody);
 }
+
+async function launchLogin() {
+  const authUrl = await buildAuthUrl();
+  const redirectTo = await browser.identity.launchWebAuthFlow({
+    url: authUrl,
+    interactive: true,
+  });
+  const code = new URL(redirectTo).searchParams.get('code');
+  return code;
+}
+
+async function exchangeCodeForApiKey(code) {
+  const verifier = sessionStorage.getItem('pkce_verifier');
+  const { value: LEETCODE_SESSION } = await browser.cookies.get({
+    url: 'https://leetcode.com',
+    name: 'LEETCODE_SESSION',
+  });
+  const { value: csrftoken } = await browser.cookies.get({
+    url: 'https://leetcode.com',
+    name: 'csrftoken',
+  });
+
+  const extraHeaders = {
+    'x-pkce-verifier': verifier,
+    'x-auth-code': code,
+    'x-csrf-token': csrftoken,
+    Cookie: `LEETCODE_SESSION=${LEETCODE_SESSION}; csrftoken=${csrftoken}`,
+  };
+
+  const { apiKey } = await sendToAPI(
+    'create-key',
+    'POST',
+    { redirectUri: REDIRECT_URI },
+    extraHeaders
+  );
+  await browser.storage.local.set({ apiKey });
+  return apiKey;
+}
+
+async function loginAndGetKey() {
+  let { apiKey } = await browser.storage.local.get('apiKey');
+  if (apiKey) return apiKey;
+
+  const code = await launchLogin();
+  apiKey = await exchangeCodeForApiKey(code);
+  return apiKey;
+}
+
+browser.runtime.onMessage.addListener((msg) => {
+  if (msg === 'login') {
+    return loginAndGetKey();
+  }
+});
 
 async function sendMessageToExtensionTab(message) {
   try {

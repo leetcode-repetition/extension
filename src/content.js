@@ -29,6 +29,7 @@ async function getLeetCodeUsernameAndUserId() {
     });
 
     const data = await response.json();
+    console.log(data.data.userStatus);
     return data.data.userStatus;
   } catch (error) {
     console.log(`Error getting user info from leetcode! ERROR: ${error}`);
