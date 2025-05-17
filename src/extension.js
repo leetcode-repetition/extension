@@ -261,7 +261,7 @@ async function setupExtension() {
 document.addEventListener('DOMContentLoaded', async () => {
   console.log('DOMContentLoaded event fired');
   const { apiKey } = await browser.storage.local.get('apiKey');
-  // const apiKey = true;
+  // const apiKey = false;
   if (!apiKey) {
     document.getElementById('table-container').style.display = 'none';
     document.getElementById('login-screen').style.display = 'flex';

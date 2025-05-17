@@ -7,8 +7,7 @@ async function sendToAPI(
   extraHeaders = {}
 ) {
   const { currentUser } = await browser.storage.local.get('currentUser');
-  // const url = `https://3d6q6gdc2a.execute-api.us-east-2.amazonaws.com/prod/v1/${endpoint}`;
-  const url = `http://127.0.0.1:3000/v1/${endpoint}`;
+  const url = `https://3d6q6gdc2a.execute-api.us-east-2.amazonaws.com/prod/v1/${endpoint}`;
 
   let fetchOptions = {
     method: method,
@@ -57,11 +56,14 @@ async function exchangeCodeForApiKey(code) {
     name: 'csrftoken',
   });
 
+  console.log(LEETCODE_SESSION);
+  console.log(csrftoken);
+
   const extraHeaders = {
-    'x-pkce-verifier': verifier,
-    'x-auth-code': code,
-    'x-csrf-token': csrftoken,
-    Cookie: `LEETCODE_SESSION=${LEETCODE_SESSION}; csrftoken=${csrftoken}`,
+    'X-Pkce-Verifier': verifier,
+    'X-Auth-Code': code,
+    'X-Csrf-Token': csrftoken,
+    'X-Leetcode-Session': LEETCODE_SESSION,
   };
 
   const { apiKey } = await sendToAPI(
@@ -82,12 +84,6 @@ async function loginAndGetKey() {
   apiKey = await exchangeCodeForApiKey(code);
   return apiKey;
 }
-
-browser.runtime.onMessage.addListener((msg) => {
-  if (msg === 'login') {
-    return loginAndGetKey();
-  }
-});
 
 async function sendMessageToExtensionTab(message) {
   try {
@@ -371,6 +367,7 @@ browser.runtime.onMessage.addListener((message, sender) => {
   if (message.action === 'initiateGoogleLogin') {
     console.log('Beginning Google oauth2 process!');
     const response = loginAndGetKey();
+    console.log(response);
     return response !== null && response !== undefined;
   }
 
