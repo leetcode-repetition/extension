@@ -191,7 +191,7 @@ async function deleteAllProblems() {
 
 async function callGetUserInfo(shouldRefresh) {
   console.log('Calling getUserInfo');
-  const { currentUser } = await browser.storage.sync.get('currentUser');
+  const { currentUser } = await browser.storage.local.get('currentUser');
 
   if (!currentUser || shouldRefresh) {
     document.getElementById('problem-table-content').innerHTML = '';
@@ -218,7 +218,8 @@ async function setupGoogleLoginButton() {
       action: 'initiateGoogleLogin',
     });
     if (response) {
-      setupExtension();
+      console.log(`valid response!!! api key: ${response}`);
+      await setupExtension();
     }
   };
 }
@@ -259,7 +260,7 @@ async function setupExtension() {
 
 document.addEventListener('DOMContentLoaded', async () => {
   console.log('DOMContentLoaded event fired');
-  const { apiKey } = await browser.storage.sync.get('apiKey');
+  const { apiKey } = await browser.storage.local.get('apiKey');
   // const apiKey = true;
   if (!apiKey) {
     document.getElementById('table-container').style.display = 'none';

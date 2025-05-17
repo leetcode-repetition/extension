@@ -6,7 +6,7 @@ async function sendToAPI(
   requestData = null,
   extraHeaders = {}
 ) {
-  const { currentUser } = await browser.storage.sync.get('currentUser');
+  const { currentUser } = await browser.storage.local.get('currentUser');
   // const url = `https://3d6q6gdc2a.execute-api.us-east-2.amazonaws.com/prod/v1/${endpoint}`;
   const url = `http://127.0.0.1:3000/v1/${endpoint}`;
 
@@ -98,7 +98,7 @@ async function sendMessageToExtensionTab(message) {
 }
 
 async function disableButtons(state) {
-  await browser.storage.sync.set({
+  await browser.storage.local.set({
     disableButtons: state,
   });
   await sendMessageToExtensionTab({
@@ -126,7 +126,7 @@ async function setUserInfo() {
   const apiKeyCreationTime = Date.now();
   try {
     const response = await sendToAPI(`create-key?userId=${userId}`, 'POST');
-    await browser.storage.sync.set({
+    await browser.storage.local.set({
       currentUser: {
         username: username,
         userId: userId,
@@ -140,7 +140,7 @@ async function setUserInfo() {
     return false;
   }
 
-  let { currentUser } = await browser.storage.sync.get('currentUser');
+  let { currentUser } = await browser.storage.local.get('currentUser');
   // give API key time to propagate through AWS (~30 seconds)
   await disableButtons(true);
   await sendMessageToExtensionTab({
@@ -160,7 +160,7 @@ async function setUserInfo() {
     return false;
   }
 
-  ({ currentUser } = await browser.storage.sync.get('currentUser'));
+  ({ currentUser } = await browser.storage.local.get('currentUser'));
   await sendMessageToExtensionTab({
     action: 'cancelCountdown',
   });
@@ -176,13 +176,13 @@ async function setUserInfo() {
 }
 
 async function addUserCompletedProblem(problem) {
-  let { currentUser } = await browser.storage.sync.get('currentUser');
+  let { currentUser } = await browser.storage.local.get('currentUser');
   if (!currentUser) {
     const success = await setUserInfo();
     if (!success) {
       return false;
     }
-    ({ currentUser } = await browser.storage.sync.get('currentUser'));
+    ({ currentUser } = await browser.storage.local.get('currentUser'));
   }
 
   const userId = currentUser.userId;
@@ -216,7 +216,7 @@ async function addUserCompletedProblem(problem) {
     });
 
     console.log('Updated problems:', updatedProblems);
-    await browser.storage.sync.set({
+    await browser.storage.local.set({
       currentUser: {
         ...currentUser,
         completedProblems: updatedProblems,
@@ -230,7 +230,7 @@ async function addUserCompletedProblem(problem) {
 }
 
 async function deleteUserCompletedProblem(problemTitleSlug) {
-  const { currentUser } = await browser.storage.sync.get('currentUser');
+  const { currentUser } = await browser.storage.local.get('currentUser');
   const endpoint = `delete-row?userId=${currentUser.userId}&problemTitleSlug=${problemTitleSlug}`;
 
   try {
@@ -240,7 +240,7 @@ async function deleteUserCompletedProblem(problemTitleSlug) {
     const updatedProblems = { ...currentUser.completedProblems };
     delete updatedProblems[problemTitleSlug];
 
-    await browser.storage.sync.set({
+    await browser.storage.local.set({
       currentUser: {
         ...currentUser,
         completedProblems: updatedProblems,
@@ -254,7 +254,7 @@ async function deleteUserCompletedProblem(problemTitleSlug) {
 }
 
 async function fetchAndUpdateUserProblems(userId) {
-  const { currentUser } = await browser.storage.sync.get('currentUser');
+  const { currentUser } = await browser.storage.local.get('currentUser');
 
   try {
     const tableResponse = await sendToAPI(`get-table?userId=${userId}`, 'GET');
@@ -271,7 +271,7 @@ async function fetchAndUpdateUserProblems(userId) {
         return acc;
       }, {});
 
-    await browser.storage.sync.set({
+    await browser.storage.local.set({
       currentUser: {
         ...currentUser,
         completedProblems: problemsObject,
@@ -285,12 +285,12 @@ async function fetchAndUpdateUserProblems(userId) {
 }
 
 async function getUserInfo(shouldRefresh) {
-  let { currentUser } = await browser.storage.sync.get('currentUser');
-  const { disableButtons } = await browser.storage.sync.get('disableButtons');
+  let { currentUser } = await browser.storage.local.get('currentUser');
+  const { disableButtons } = await browser.storage.local.get('disableButtons');
 
   if (!currentUser || shouldRefresh) {
     const success = await setUserInfo();
-    ({ currentUser } = await browser.storage.sync.get('currentUser'));
+    ({ currentUser } = await browser.storage.local.get('currentUser'));
     if (!success) {
       console.log('User not initialized');
       return {
@@ -311,7 +311,7 @@ async function getUserInfo(shouldRefresh) {
 }
 
 async function checkIfProblemCompletedInLastDay(titleSlug) {
-  const { currentUser } = await browser.storage.sync.get('currentUser');
+  const { currentUser } = await browser.storage.local.get('currentUser');
   if (!currentUser || !currentUser.completedProblems[titleSlug]) {
     return false;
   }
@@ -325,12 +325,12 @@ async function checkIfProblemCompletedInLastDay(titleSlug) {
 }
 
 async function deleteAllUserCompletedProblems() {
-  const { currentUser } = await browser.storage.sync.get('currentUser');
+  const { currentUser } = await browser.storage.local.get('currentUser');
   const endpoint = `delete-table?userId=${currentUser.userId}`;
 
   try {
     await sendToAPI(endpoint, 'DELETE');
-    await browser.storage.sync.set({
+    await browser.storage.local.set({
       currentUser: {
         ...currentUser,
         completedProblems: {},
