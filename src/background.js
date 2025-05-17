@@ -17,7 +17,7 @@ async function sendToAPI(
       'X-Api-Key': currentUser ? currentUser.apiKey : '',
       ...extraHeaders,
     },
-    credentials: 'include',
+    ...(endpoint === 'create-key' && { credentials: 'include' }),
   };
 
   if (requestData) {
