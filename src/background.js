@@ -1,4 +1,4 @@
-import { buildAuthUrl } from './auth.js';
+import { buildAuthUrl, REDIRECT_URI } from './auth.js';
 
 async function sendToAPI(
   endpoint,
@@ -367,6 +367,11 @@ browser.runtime.onMessage.addListener((message, sender) => {
   if (message.action === 'checkIfProblemCompletedInLastDay') {
     console.log('Checking if problem is already completed:', message.titleSlug);
     return checkIfProblemCompletedInLastDay(message.titleSlug);
+  }
+  if (message.action === 'initiateGoogleLogin') {
+    console.log('Beginning Google oauth2 process!');
+    const response = loginAndGetKey();
+    return response !== null && response !== undefined;
   }
 
   return Promise.resolve(false);

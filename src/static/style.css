@@ -24,13 +24,9 @@ a:hover {
     color: #ff8c00;
 }
 
-#container {
+#table-container {
     display: flex;
     flex-direction: column;
-    background-color: #1c1c1c;
-    padding: 6px 20px 20px 20px;
-    color: white;
-    font-family: Arial, Helvetica, sans-serif;
 }
 
 #header {
@@ -161,4 +157,55 @@ iframe {
 #leetcode-logo {
     width: auto !important;
     height: 40px !important;
+}
+
+#extension-container {
+    background-color: #1c1c1c;
+    padding: 6px 20px 20px 20px;
+    color: white;
+    font-family: Arial, Helvetica, sans-serif;
+}
+
+#login-screen {
+    display: flex;
+    flex-direction: column;
+    width: auto;
+    height: auto;
+}
+
+#login-button {
+    display: flex;
+    background-color: #FFF;
+    color: #777777;
+    font-size: 20px;
+    justify-content: center;
+    align-items: center;
+    gap: 8px;
+    padding-right: 15px;
+    border-color: #FFF;
+    border-radius: 5px;
+}
+
+#login-button:hover {
+    background-color: #4285f4;
+    border-color: #4285f4;
+    color: #FFF
+}
+
+#google-logo {
+    width: 35px;
+    height: 35px;
+    padding: 10px;
+    background-color: #FFF;
+    border-radius: 5px;
+}
+
+#login-header {
+    display: flex;
+    align-items: center;
+}
+
+#leetcode-repetition-logo {
+    width: 40px;
+    height: 40px;
 }

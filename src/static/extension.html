@@ -6,23 +6,35 @@
     <script src="../extension.js" defer></script>
   </head>
   <body>
-    <div id="container">
-      <div id="header">
-        <img id="leetcode-logo" src="./leetcode-logo.png">
-        <p id="username">Login Needed!</p>
-        <button id="delete-all-btn"></button>
-        <button id="refresh-btn">
-          <img src="./refresh.svg">
+    <div id="extension-container">
+      <div id="login-screen">
+        <div id="login-header">
+          <img id="leetcode-repetition-logo" src="./leetcode-repetition-white.png">
+          <p>LeetCode Repetition</p>
+        </div>
+        <button id="login-button">
+          <img id="google-logo" src="./google-logo.png">
+          <p>Log in with Google</p>
         </button>
       </div>
-      <div id="table-header">
-        <p>Problem</p>
-        <p>Repeat On</p>
-        <p>Last Subm.</p>
-      </div>
-      <div id="problem-table">
-        <div id="problem-table-content">
-          <p>No problems found. Complete problems to populate the table!</p>
+      <div id=table-container>
+        <div id="header">
+          <img id="leetcode-logo" src="./leetcode-logo.png">
+          <p id="username">LeetCode Login Needed!</p>
+          <button id="delete-all-btn"></button>
+          <button id="refresh-btn">
+            <img src="./refresh.svg">
+          </button>
+        </div>
+        <div id="table-header">
+          <p>Problem</p>
+          <p>Repeat On</p>
+          <p>Last Subm.</p>
+        </div>
+        <div id="problem-table">
+          <div id="problem-table-content">
+            <p>No problems found. Complete problems to populate the table!</p>
+          </div>
         </div>
       </div>
     </div>

@@ -1,7 +1,7 @@
 function setUsernameElement(username) {
   document.getElementById('username').textContent = username
     ? username
-    : 'Login Needed!';
+    : 'LeetCode Login Needed!';
   return true;
 }
 
@@ -31,7 +31,7 @@ function setupDeleteButtons(disableButtons) {
 
 function setAllButtonsDisabled(disableButtons) {
   console.log(`Setting button clickability to ${!disableButtons}`);
-  const container = document.getElementById('container');
+  const container = document.getElementById('table-container');
   const buttons = container.querySelectorAll('button');
   buttons.forEach((button) => {
     button.disabled = disableButtons;
@@ -210,6 +210,19 @@ async function callGetUserInfo(shouldRefresh) {
   );
 }
 
+async function setupGoogleLoginButton() {
+  console.log('Setting up Google login button!');
+  document.getElementById('login-button').onclick = async () => {
+    console.log('Google login button clicked');
+    const response = await browser.runtime.sendMessage({
+      action: 'initiateGoogleLogin',
+    });
+    if (response) {
+      setupExtension();
+    }
+  };
+}
+
 browser.runtime.onMessage.addListener((message, sender, sendResponse) => {
   console.log('Extension received message:', message);
 
@@ -238,9 +251,23 @@ browser.runtime.onMessage.addListener((message, sender, sendResponse) => {
   return true;
 });
 
+async function setupExtension() {
+  document.getElementById('table-container').style.display = 'flex';
+  document.getElementById('login-screen').style.display = 'none';
+  await callGetUserInfo(false);
+}
+
 document.addEventListener('DOMContentLoaded', async () => {
   console.log('DOMContentLoaded event fired');
-  await callGetUserInfo(false);
+  const { apiKey } = await browser.storage.sync.get('apiKey');
+  // const apiKey = true;
+  if (!apiKey) {
+    document.getElementById('table-container').style.display = 'none';
+    document.getElementById('login-screen').style.display = 'flex';
+    await setupGoogleLoginButton();
+  } else {
+    await setupExtension();
+  }
 });
 
 window.addEventListener('unload', () => {
