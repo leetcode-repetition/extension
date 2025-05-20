@@ -1,6 +1,6 @@
 import { generatePKCECodes } from './utilities.js';
 
-const CLIENT_ID =
+export const CLIENT_ID =
   '968959270720-vupaquhphp0jjs58r3mm4pm0t0u7l16i.apps.googleusercontent.com';
 export const REDIRECT_URI = browser.identity.getRedirectURL();
 

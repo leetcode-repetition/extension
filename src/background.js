@@ -1,4 +1,4 @@
-import { buildAuthUrl, REDIRECT_URI } from './auth.js';
+import { buildAuthUrl, CLIENT_ID, REDIRECT_URI } from './auth.js';
 
 async function sendToAPI(
   endpoint,
@@ -64,6 +64,8 @@ async function exchangeCodeForApiKey(code) {
     'X-Auth-Code': code,
     'X-Csrf-Token': csrftoken,
     'X-Leetcode-Session': LEETCODE_SESSION,
+    'X-Client-ID': CLIENT_ID,
+    'X-Token-Endpoint': 'https://oauth2.googleapis.com/token',
   };
 
   const { apiKey } = await sendToAPI(
@@ -78,7 +80,7 @@ async function exchangeCodeForApiKey(code) {
 
 async function loginAndGetKey() {
   let { apiKey } = await browser.storage.local.get('apiKey');
-  if (apiKey) return apiKey;
+  // if (apiKey) return apiKey;
 
   const code = await launchLogin();
   apiKey = await exchangeCodeForApiKey(code);

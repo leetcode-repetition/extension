@@ -25,7 +25,7 @@ a:hover {
 }
 
 #table-container {
-    display: flex;
+    display: none;
     flex-direction: column;
 }
 
@@ -167,7 +167,7 @@ iframe {
 }
 
 #login-screen {
-    display: flex;
+    display: none;
     flex-direction: column;
     width: auto;
     height: auto;

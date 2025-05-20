@@ -253,15 +253,15 @@ browser.runtime.onMessage.addListener((message, sender, sendResponse) => {
 });
 
 async function setupExtension() {
-  document.getElementById('table-container').style.display = 'flex';
   document.getElementById('login-screen').style.display = 'none';
+  document.getElementById('table-container').style.display = 'flex';
   await callGetUserInfo(false);
 }
 
 document.addEventListener('DOMContentLoaded', async () => {
   console.log('DOMContentLoaded event fired');
-  const { apiKey } = await browser.storage.local.get('apiKey');
-  // const apiKey = false;
+  // const { apiKey } = await browser.storage.local.get('apiKey');
+  const apiKey = false;
   if (!apiKey) {
     document.getElementById('table-container').style.display = 'none';
     document.getElementById('login-screen').style.display = 'flex';
