@@ -58,10 +58,6 @@ async function exchangeCodeForApiKey(code) {
 
   if (!LEETCODE_SESSION?.value || !csrftoken?.value) {
     console.log('LeetCode cookies not found');
-    return false;
-  }
-  if (!LEETCODE_SESSION?.value || !csrftoken?.value) {
-    console.log('LeetCode cookies not found');
     return '';
   }
 
