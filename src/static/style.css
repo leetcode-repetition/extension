@@ -209,3 +209,17 @@ iframe {
     width: 40px;
     height: 40px;
 }
+
+p.cookie-flag {
+    display: none;
+}
+
+button.cookie-flag {
+    opacity: 1;
+    cursor: pointer;
+}
+
+button.cookie-flag:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+}

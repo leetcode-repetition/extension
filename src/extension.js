@@ -252,6 +252,70 @@ browser.runtime.onMessage.addListener((message, sender, sendResponse) => {
   return true;
 });
 
+async function cookiesValid() {
+  const LEETCODE_SESSION = await browser.cookies.get({
+    url: 'https://leetcode.com',
+    name: 'LEETCODE_SESSION',
+  });
+
+  const csrftoken = await browser.cookies.get({
+    url: 'https://leetcode.com',
+    name: 'csrftoken',
+  });
+
+  if (!LEETCODE_SESSION?.value || !csrftoken?.value) {
+    console.log('LeetCode cookies not found');
+    return false;
+  }
+
+  try {
+    const response = await fetch('https://leetcode.com/graphql', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'x-csrftoken': csrftoken,
+        cookie: `csrftoken=${csrftoken}; LEETCODE_SESSION=${LEETCODE_SESSION}`,
+      },
+      body: JSON.stringify({
+        query: `
+          query {
+            userStatus {
+              isSignedIn
+            }
+          }
+        `,
+      }),
+    });
+
+    const data = await response.json();
+    console.log(data?.data?.userStatus?.isSignedIn);
+    await browser.storage.local.set({
+      csrftoken: csrftoken,
+      LEETCODE_SESSION: LEETCODE_SESSION,
+    });
+    return data?.data?.userStatus?.isSignedIn === true;
+  } catch (error) {
+    console.log('Cookies Invalid!');
+    return false;
+  }
+}
+
+function handleCookieFlagElements(loggedIn) {
+  const cookieFlagElements = document.getElementsByClassName('cookie-flag');
+
+  for (let i = 0; i < cookieFlagElements.length; i++) {
+    const element = cookieFlagElements[i];
+
+    if (element.tagName.toLowerCase() === 'button') {
+      element.disabled = loggedIn ? false : true;
+      element.style.opacity = loggedIn ? '1' : '0.5';
+      element.style.cursor = loggedIn ? 'pointer' : 'not-allowed';
+    } else if (element.tagName.toLowerCase() === 'p') {
+      element.style.display = loggedIn ? 'none' : 'block';
+    }
+  }
+}
+
 async function setupExtension() {
   document.getElementById('login-screen').style.display = 'none';
   document.getElementById('table-container').style.display = 'flex';
@@ -260,12 +324,13 @@ async function setupExtension() {
 
 document.addEventListener('DOMContentLoaded', async () => {
   console.log('DOMContentLoaded event fired');
-  // const { apiKey } = await browser.storage.local.get('apiKey');
-  const apiKey = false;
+  const { apiKey } = await browser.storage.local.get('apiKey');
+
   if (!apiKey) {
     document.getElementById('table-container').style.display = 'none';
     document.getElementById('login-screen').style.display = 'flex';
     await setupGoogleLoginButton();
+    handleCookieFlagElements(await cookiesValid());
   } else {
     await setupExtension();
   }

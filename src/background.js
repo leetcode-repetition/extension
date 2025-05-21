@@ -47,14 +47,23 @@ async function launchLogin() {
 
 async function exchangeCodeForApiKey(code) {
   const verifier = sessionStorage.getItem('pkce_verifier');
-  const { value: LEETCODE_SESSION } = await browser.cookies.get({
+  const LEETCODE_SESSION = await browser.cookies.get({
     url: 'https://leetcode.com',
     name: 'LEETCODE_SESSION',
   });
-  const { value: csrftoken } = await browser.cookies.get({
+  const csrftoken = await browser.cookies.get({
     url: 'https://leetcode.com',
     name: 'csrftoken',
   });
+
+  if (!LEETCODE_SESSION?.value || !csrftoken?.value) {
+    console.log('LeetCode cookies not found');
+    return false;
+  }
+  if (!LEETCODE_SESSION?.value || !csrftoken?.value) {
+    console.log('LeetCode cookies not found');
+    return '';
+  }
 
   console.log(LEETCODE_SESSION);
   console.log(csrftoken);
@@ -62,8 +71,8 @@ async function exchangeCodeForApiKey(code) {
   const extraHeaders = {
     'X-Pkce-Verifier': verifier,
     'X-Auth-Code': code,
-    'X-Csrf-Token': csrftoken,
-    'X-Leetcode-Session': LEETCODE_SESSION,
+    'X-Csrf-Token': csrftoken.value,
+    'X-Leetcode-Session': LEETCODE_SESSION.value,
     'X-Client-ID': CLIENT_ID,
     'X-Token-Endpoint': 'https://oauth2.googleapis.com/token',
   };
