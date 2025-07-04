@@ -40,6 +40,7 @@ interface GetUserInfoResponse {
 interface LoginResult {
   apiKey: string | null;
   username: string | null;
+  userId: string | null;
 }
 
 async function sendToAPI(
@@ -95,7 +96,7 @@ async function exchangeCodeForApiKey(
 ): Promise<LoginResult> {
   if (!code) {
     console.log('No code provided');
-    return { apiKey: null, username: null };
+    return { apiKey: null, username: null, userId: null };
   }
 
   const verifier = sessionStorage.getItem('pkce_verifier');
@@ -110,7 +111,7 @@ async function exchangeCodeForApiKey(
 
   if (!LEETCODE_SESSION?.value || !csrftoken?.value) {
     console.log('LeetCode cookies not found');
-    return { apiKey: null, username: null };
+    return { apiKey: null, username: null, userId: null };
   }
 
   console.log(`Leetcode session: ${LEETCODE_SESSION}`);
@@ -134,29 +135,33 @@ async function exchangeCodeForApiKey(
     );
 
     const apiKey = response.apiKey;
-    const username = response.username || '';
+    const username = response.username;
+    const userId = response.userId;
+
 
     if (!apiKey) {
       console.log('Error creating API key.');
-      return { apiKey: null, username: null };
+      return { apiKey: null, username: null, userId: null };
     }
 
     await browser.storage.local.set({ apiKey });
     await browser.storage.local.set({ username });
-    return { apiKey, username };
+    return { apiKey, username, userId };
   } catch (error) {
     console.error('Error exchanging code for API key:', error);
-    return { apiKey: null, username: null };
+    return { apiKey: null, username: null, userId: null };
   }
 }
 
 async function loginAndGetKey(): Promise<LoginResult> {
-  const { apiKey } = await browser.storage.local.get('apiKey');
-  const { username } = await browser.storage.local.get('username');
-  // if (apiKey) return { apiKey, username: null };
-
   const code = await launchLogin();
   const result = await exchangeCodeForApiKey(code);
+
+  await browser.storage.local.set({
+    apiKey: result.apiKey,
+    username: result.username,
+    userId: result.userId,
+  });
   return result;
 }
 
@@ -179,25 +184,14 @@ async function disableButtons(state: boolean): Promise<void> {
 }
 
 async function getUsernameAndUserId(): Promise<UserNameAndIdResponse> {
-  const tabs = await browser.tabs.query({ active: true, currentWindow: true });
-  if (!tabs || !tabs[0] || !tabs[0].id) {
-    console.log('No active tab found');
-    return { username: '', userId: '' };
-  }
-
-  const response = (await browser.tabs.sendMessage(tabs[0].id, {
-    action: 'getUsernameAndUserId',
-  })) as MessageResponse;
-
-  return {
-    username: response.username || '',
-    userId: response.userId || '',
-  };
+  const { username } = await browser.storage.local.get('username');
+  const { userId } = await browser.storage.local.get('userId');
+  return { username, userId };
 }
 
 async function setUserInfo(): Promise<boolean> {
-  const { username, userId } = await getUsernameAndUserId();
-  if (!username || !userId) {
+  let { username, userId } = await getUsernameAndUserId();
+  if (!username) {
     console.log('Username not found - please log in to LeetCode!');
     return false;
   }
@@ -515,11 +509,11 @@ browser.runtime.onMessage.addListener(
     if (message.action === 'initiateGoogleLogin') {
       console.log('Beginning Google oauth2 process!');
       return loginAndGetKey().then((result) => {
-        const { apiKey, username } = result;
+        const { apiKey, username, userId } = result;
         console.log(`received response: ${apiKey}, ${username}`);
-        if (apiKey && username) {
+        if (apiKey && username && userId) {
           console.log(
-            `valid response!!! api key: ${apiKey}, username: ${username}`
+            `valid response!!! api key: ${apiKey}, username: ${username}, userId: ${userId}`
           );
           return apiKey;
         } else {
