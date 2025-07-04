@@ -220,6 +220,8 @@ async function setupGoogleLoginButton() {
     if (response) {
       console.log(`valid response!!! api key: ${response}`);
       await setupExtension();
+    } else {
+      console.log('Google login failed');
     }
   };
 }
@@ -319,7 +321,7 @@ function handleCookieFlagElements(loggedIn) {
 async function setupExtension() {
   document.getElementById('login-screen').style.display = 'none';
   document.getElementById('table-container').style.display = 'flex';
-  await callGetUserInfo(false);
+  await callGetUserInfo(true);
 }
 
 document.addEventListener('DOMContentLoaded', async () => {

@@ -30,6 +30,7 @@ async function sendToAPI(
   if (!response.ok) {
     throw new Error(`HTTP error! status: ${response.status}`);
   }
+
   const responseBody = await response.text();
   console.log('Response body:', responseBody);
   return JSON.parse(responseBody);
@@ -58,11 +59,11 @@ async function exchangeCodeForApiKey(code) {
 
   if (!LEETCODE_SESSION?.value || !csrftoken?.value) {
     console.log('LeetCode cookies not found');
-    return '';
+    return null, null;
   }
 
-  console.log(LEETCODE_SESSION);
-  console.log(csrftoken);
+  console.log(`Leetcode session: ${LEETCODE_SESSION}`);
+  console.log(`CSRF token: ${csrftoken}`);
 
   const extraHeaders = {
     'X-Pkce-Verifier': verifier,
@@ -79,17 +80,25 @@ async function exchangeCodeForApiKey(code) {
     { redirectUri: REDIRECT_URI },
     extraHeaders
   );
+
+  if (!apiKey) {
+    console.log('Error creating API key.');
+    return null, null;
+  }
+
   await browser.storage.local.set({ apiKey });
-  return apiKey;
+  await browser.storage.local.set({ username });
+  return apiKey, username;
 }
 
 async function loginAndGetKey() {
   let { apiKey } = await browser.storage.local.get('apiKey');
+  let { username } = await browser.storage.local.get('username');
   // if (apiKey) return apiKey;
 
   const code = await launchLogin();
-  apiKey = await exchangeCodeForApiKey(code);
-  return apiKey;
+  apiKey, username = await exchangeCodeForApiKey(code);
+  return apiKey, username;
 }
 
 async function sendMessageToExtensionTab(message) {
@@ -119,7 +128,7 @@ async function getUsernameAndUserId() {
 }
 
 async function setUserInfo() {
-  const { username, userId } = await getUsernameAndUserId();
+  const { username } = await getUsernameAndUserId();
   if (!username || !userId) {
     console.log('Username not found - please log in to LeetCode!');
     return false;
@@ -132,7 +141,6 @@ async function setUserInfo() {
     await browser.storage.local.set({
       currentUser: {
         username: username,
-        userId: userId,
         apiKey: response.apiKey,
         apiKeyCreationTime: apiKeyCreationTime,
         completedProblems: {},
@@ -373,9 +381,15 @@ browser.runtime.onMessage.addListener((message, sender) => {
   }
   if (message.action === 'initiateGoogleLogin') {
     console.log('Beginning Google oauth2 process!');
-    const response = loginAndGetKey();
-    console.log(response);
-    return response !== null && response !== undefined;
+    const {apiKey, username} = loginAndGetKey();
+    console.log(`recieved response: ${apiKey}, ${username}`);
+    if (apiKey && username) {
+      console.log(`valid response!!! api key: ${apiKey}, username: ${username}`);
+      return apiKey, username;
+    } else {
+      console.log('Google login failed');
+      return '', '';
+    }
   }
 
   return Promise.resolve(false);

@@ -20,11 +20,6 @@
   },
   "content_scripts": [
       {
-        "matches": ["https://leetcode.com/*"],
-        "js": ["./src/content.js"],
-        "run_at": "document_end"
-      },
-      {
         "matches": ["https://leetcode.com/problems/*"],
         "js": ["./src/popup.js"],
         "run_at": "document_start"
