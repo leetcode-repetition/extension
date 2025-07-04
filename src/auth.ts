@@ -1,10 +1,10 @@
-import { generatePKCECodes } from './utilities.js';
+import { generatePKCECodes } from './utilities';
 
-export const CLIENT_ID =
+export const CLIENT_ID: string =
   '968959270720-vupaquhphp0jjs58r3mm4pm0t0u7l16i.apps.googleusercontent.com';
-export const REDIRECT_URI = browser.identity.getRedirectURL();
+export const REDIRECT_URI: string = browser.identity.getRedirectURL();
 
-export async function buildAuthUrl() {
+export async function buildAuthUrl(): Promise<string> {
   const { verifier, challenge } = await generatePKCECodes();
   sessionStorage.setItem('pkce_verifier', verifier);
 

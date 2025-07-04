@@ -1,12 +1,19 @@
 {
   "devDependencies": {
+    "@typescript-eslint/eslint-plugin": "^8.35.1",
+    "@typescript-eslint/parser": "^8.35.1",
+    "esbuild": "^0.25.5",
     "eslint": "^9.10.0",
     "eslint-config-prettier": "^9.1.0",
     "eslint-plugin-prettier": "^5.2.1",
     "globals": "^15.9.0",
-    "prettier": "^3.4.2"
+    "jiti": "^2.4.2",
+    "prettier": "^3.4.2",
+    "typescript": "^5.8.3"
   },
   "scripts": {
-    "format": "prettier --write \"src/**/*.js\" && eslint \"src/**/*.js\" --fix"
+    "format": "prettier --write \"src/**/*.ts\" && eslint \"src/**/*.ts\" --fix",
+    "build": "esbuild src/background.ts src/popup.ts src/extension.ts --bundle --outdir=dist --format=esm --sourcemap",
+    "watch": "esbuild src/background.ts src/popup.ts src/extension.ts --bundle --outdir=dist --format=esm --sourcemap --watch"
   }
 }

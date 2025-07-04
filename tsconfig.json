@@ -1,0 +1,18 @@
+{
+  "compilerOptions": {
+    "module": "es2020",                // or "esnext"/"preserve"
+    "moduleResolution": "bundler",     // ← allows extensionless imports
+    "target": "es2020",
+    "esModuleInterop": true,
+    "strict": true,
+    "noImplicitAny": true,
+    "sourceMap": true,
+    "outDir": "./dist",
+    "baseUrl": ".",
+    "lib": ["ES2020","DOM"],
+    "skipLibCheck": true,
+    "typeRoots": ["./node_modules/@types","./src/types"]
+  },
+  "include": ["src/**/*"],
+  "exclude": ["node_modules","dist"]
+}
