@@ -41,6 +41,12 @@ interface LoginResult {
   apiKey: string | null;
   username: string | null;
   userId: string | null;
+  apiKeyCreationTime: number;
+}
+
+interface Message {
+  action: string;
+  [key: string]: any;
 }
 
 async function sendToAPI(
@@ -96,7 +102,7 @@ async function exchangeCodeForApiKey(
 ): Promise<LoginResult> {
   if (!code) {
     console.log('No code provided');
-    return { apiKey: null, username: null, userId: null };
+    return { apiKey: null, username: null, userId: null, apiKeyCreationTime: 0 };
   }
 
   const verifier = sessionStorage.getItem('pkce_verifier');
@@ -111,7 +117,7 @@ async function exchangeCodeForApiKey(
 
   if (!LEETCODE_SESSION?.value || !csrftoken?.value) {
     console.log('LeetCode cookies not found');
-    return { apiKey: null, username: null, userId: null };
+    return { apiKey: null, username: null, userId: null, apiKeyCreationTime: 0 };
   }
 
   console.log(`Leetcode session: ${LEETCODE_SESSION}`);
@@ -137,28 +143,20 @@ async function exchangeCodeForApiKey(
     const apiKey = response.apiKey;
     const username = response.username;
     // const userId = response.userId;
+    // const newApiKey = response.newApiKey;
     const userId = '123'; // need to make API return userId
-
+    const apiKeyCreationTime = 0;
 
     if (!apiKey || !username || !userId) {
       console.log('Error creating API key.');
-      return { apiKey: null, username: null, userId: null };
+      return { apiKey: null, username: null, userId: null, apiKeyCreationTime: 0 };
     }
-
-    await browser.storage.local.set({ apiKey });
-    await browser.storage.local.set({ username });
-    console.log(`Username: ${username}`, `User ID: ${userId}`, `API Key: ${apiKey}`);
-    return { apiKey, username, userId };
+    console.log(`Username: ${username}`, `User ID: ${userId}`, `API Key: ${apiKey}`, `Key Creation Time: ${apiKeyCreationTime}`);
+    return { apiKey, username, userId, apiKeyCreationTime };
   } catch (error) {
     console.error('Error exchanging code for API key:', error);
-    return { apiKey: null, username: null, userId: null };
+    return { apiKey: null, username: null, userId: null, apiKeyCreationTime: 0 };
   }
-}
-
-async function loginAndGetKey(): Promise<LoginResult> {
-  const code = await launchLogin();
-  const result = await exchangeCodeForApiKey(code);
-  return result;
 }
 
 async function sendMessageToExtensionTab(message: any): Promise<void> {
@@ -185,79 +183,10 @@ async function getUsernameAndUserId(): Promise<UserNameAndIdResponse> {
   return { username, userId };
 }
 
-async function setUserInfo(): Promise<boolean> {
-  let { username, userId } = await getUsernameAndUserId();
-  if (!username) {
-    console.log('Username not found - please log in to LeetCode!');
-    return false;
-  }
-
-  console.log('Received username and userId');
-  const apiKeyCreationTime = Date.now();
-  try {
-    const response = await sendToAPI(`create-key?userId=${userId}`, 'POST');
-    await browser.storage.local.set({
-      currentUser: {
-        username: username,
-        userId: userId,
-        apiKey: response.apiKey,
-        apiKeyCreationTime: apiKeyCreationTime,
-        completedProblems: {},
-      } as CurrentUser,
-    });
-  } catch (error) {
-    console.error(`Error obtaining API key! ERROR: ${error}`);
-    return false;
-  }
-
-  let { currentUser } = await browser.storage.local.get('currentUser');
-  // give API key time to propagate through AWS (~30 seconds)
-  await disableButtons(true);
-  await sendMessageToExtensionTab({
-    action: 'createTable',
-    username: username,
-    problems: [],
-    disableButtons: true,
-    timeSinceApiKeyCreation: Math.floor(
-      (Date.now() - apiKeyCreationTime) / 1000
-    ),
-  });
-  await new Promise((resolve) => setTimeout(resolve, 30000));
-  await disableButtons(false);
-
-  const success = await fetchAndUpdateUserProblems(userId);
-  if (!success) {
-    return false;
-  }
-
-  ({ currentUser } = await browser.storage.local.get('currentUser'));
-  await sendMessageToExtensionTab({
-    action: 'cancelCountdown',
-  });
-  await sendMessageToExtensionTab({
-    action: 'createTable',
-    username: currentUser.username,
-    problems: Object.values(currentUser.completedProblems),
-    disableButtons: false,
-    timeSinceApiKeyCreation: 9999999,
-  });
-
-  return true;
-}
-
 async function addUserCompletedProblem(problem: ProblemData): Promise<boolean> {
   let { currentUser } = (await browser.storage.local.get('currentUser')) as {
-    currentUser: CurrentUser | undefined;
+    currentUser: CurrentUser;
   };
-  if (!currentUser) {
-    const success = await setUserInfo();
-    if (!success) {
-      return false;
-    }
-    ({ currentUser } = (await browser.storage.local.get('currentUser')) as {
-      currentUser: CurrentUser;
-    });
-  }
 
   const userId = currentUser.userId;
   if (!userId) {
@@ -342,17 +271,10 @@ async function deleteUserCompletedProblem(
   }
 }
 
-async function fetchAndUpdateUserProblems(userId: string): Promise<boolean> {
-  const { currentUser } = (await browser.storage.local.get('currentUser')) as {
-    currentUser: CurrentUser;
-  };
-  if (!currentUser) {
-    console.log('User not found');
-    return false;
-  }
-
+async function fetchAndUpdateUserProblems(currentUser: CurrentUser): Promise<boolean> {
+  console.log('Fetching problems for user:', currentUser);
   try {
-    const tableResponse = await sendToAPI(`get-table?userId=${userId}`, 'GET');
+    const tableResponse = await sendToAPI(`get-table?userId=${currentUser.userId}`, 'GET');
     const problemsObject: Record<string, ProblemData> = tableResponse.table
       .map(
         ({ link, titleSlug, repeatDate, lastCompletionDate }: ProblemData) => ({
@@ -462,10 +384,37 @@ async function deleteAllUserCompletedProblems(): Promise<boolean> {
   }
 }
 
-// Interface for incoming messages
-interface Message {
-  action: string;
-  [key: string]: any;
+async function initializeCurrentUser(apiKey: string, username: string, userId: string, apiKeyCreationTime: number) {
+  const timeSinceApiKeyCreation = Math.floor((Date.now() - apiKeyCreationTime) / 1000);
+  await browser.storage.local.set({
+    currentUser: {
+      apiKey,
+      username,
+      userId,
+      apiKeyCreationTime,
+      completedProblems: {},
+    } as CurrentUser,
+  });
+  let { currentUser } = await browser.storage.local.get('currentUser');
+
+  const success = await fetchAndUpdateUserProblems(currentUser);
+  if (!success) {
+    return false;
+  }
+  ({ currentUser } = await browser.storage.local.get('currentUser'));
+
+  await sendMessageToExtensionTab({
+    action: 'cancelCountdown',
+  });
+  await sendMessageToExtensionTab({
+    action: 'createTable',
+    username: currentUser.username,
+    problems: Object.values(currentUser.completedProblems),
+    disableButtons: false,
+    timeSinceApiKeyCreation: timeSinceApiKeyCreation,
+  });
+
+  return true;
 }
 
 browser.runtime.onMessage.addListener(
@@ -504,23 +453,14 @@ browser.runtime.onMessage.addListener(
 
     if (message.action === 'initiateGoogleLogin') {
       console.log('Beginning Google oauth2 process!');
-      const result = await loginAndGetKey();
-      const { apiKey, username, userId } = result;
-      console.log(`received response: ${apiKey}, ${username}`);
+      const { apiKey, username, userId, apiKeyCreationTime }= await exchangeCodeForApiKey(await launchLogin());
+      console.log(`received response: ${apiKey}, ${username}, ${userId}, ${apiKeyCreationTime}`);
       
       if (apiKey && username && userId) {
         console.log(
-          `valid response!!! api key: ${apiKey}, username: ${username}, userId: ${userId}`
+          `valid login!!! api key: ${apiKey}, username: ${username}, userId: ${userId}`
         );
-        await browser.storage.local.set({
-          currentUser: {
-            apiKey,
-            username,
-            userId,
-            apiKeyCreationTime: Date.now(),
-            completedProblems: {},
-          } as CurrentUser,
-        });
+        await initializeCurrentUser(apiKey, username, userId, apiKeyCreationTime);
         return true;
       } else {
         console.log('Google login failed');

@@ -32,11 +32,12 @@ interface ProblemData {
   repeatDate: string;
 }
 
-interface GetUserInfoResponse {
-  username: string | null;
-  completedProblems: ProblemData[];
-  disableButtons: boolean;
+interface CurrentUser {
+  username: string;
+  userId: string;
+  apiKey: string;
   apiKeyCreationTime: number;
+  completedProblems: Record<string, ProblemData>;
 }
 
 interface DeleteResponse {
@@ -55,15 +56,13 @@ function setupRefreshButton(disableButtons: boolean): void {
   console.log('Setting up refresh button');
   const refreshButton = document.getElementById(
     'refresh-btn'
-  ) as HTMLButtonElement | null;
+  ) as HTMLButtonElement;
 
-  if (refreshButton) {
-    refreshButton.disabled = disableButtons;
-    refreshButton.onclick = async (): Promise<void> => {
-      console.log('Refresh button clicked');
-      await callGetUserInfo(true);
-    };
-  }
+  refreshButton.disabled = disableButtons;
+  refreshButton.onclick = async (): Promise<void> => {
+    console.log('Refresh button clicked');
+    await browser.storage.local.set({ currentUser: null });
+  };
 }
 
 function setupDeleteButtons(disableButtons: boolean): void {
@@ -292,29 +291,6 @@ async function deleteAllProblems(): Promise<void> {
   }
 }
 
-async function callGetUserInfo(shouldRefresh: boolean): Promise<void> {
-  console.log('Calling getUserInfo');
-  const { currentUser } = await browser.storage.local.get('currentUser');
-  const tableContent = document.getElementById('problem-table-content');
-
-  if ((!currentUser || shouldRefresh) && tableContent) {
-    tableContent.innerHTML = '';
-  }
-
-  const response = (await browser.runtime.sendMessage({
-    action: 'getUserInfo',
-    shouldRefresh: shouldRefresh,
-  })) as GetUserInfoResponse;
-
-  console.log(response);
-  setUsernameElement(response.username);
-  createTable(
-    response.completedProblems,
-    response.disableButtons,
-    Math.floor((Date.now() - response.apiKeyCreationTime) / 1000)
-  );
-}
-
 async function setupGoogleLoginButton(): Promise<boolean> {
   console.log('Setting up Google login button!');
   const loginButton = document.getElementById(
@@ -326,11 +302,10 @@ async function setupGoogleLoginButton(): Promise<boolean> {
     const response = await browser.runtime.sendMessage({
       action: 'initiateGoogleLogin',
     });
-
     return response as boolean;
   };
 
-  return true;
+  return false;
 }
 
 browser.runtime.onMessage.addListener(
@@ -430,25 +405,30 @@ function handleCookieFlagElements(loggedIn: boolean): void {
   }
 }
 
-async function setupExtension(): Promise<void> {
+async function setupExtension(currentUser: CurrentUser): Promise<void> {
   const loginScreen = document.getElementById('login-screen');
   const tableContainer = document.getElementById('table-container');
 
   if (loginScreen) {
     loginScreen.style.display = 'none';
   }
-
   if (tableContainer) {
     tableContainer.style.display = 'flex';
   }
 
-  await callGetUserInfo(true);
+  setUsernameElement(currentUser.username);
+  createTable(
+    Object.values(currentUser.completedProblems),
+    false,
+    Math.floor((Date.now() - currentUser.apiKeyCreationTime) / 1000)
+  );
 }
 
 document.addEventListener('DOMContentLoaded', async (): Promise<void> => {
   console.log('DOMContentLoaded event fired');
-  const { currentUser } = await browser.storage.local.get('currentUser');
+  let { currentUser } = await browser.storage.local.get('currentUser');
 
+  console.log('Current user:', currentUser);
   if (!currentUser) {
     const tableContainer = document.getElementById('table-container');
     const loginScreen = document.getElementById('login-screen');
@@ -463,12 +443,12 @@ document.addEventListener('DOMContentLoaded', async (): Promise<void> => {
 
     const success = await setupGoogleLoginButton();
     if (success) {
-      await setupExtension();
-    } else {
-      console.error('Failed to set up Google login button');
+      ({ currentUser } = await browser.storage.local.get('currentUser'));
+      console.log('Current user after login:', currentUser);
+      await setupExtension(currentUser);
     }
   } else {
-    await setupExtension();
+    await setupExtension(currentUser);
   }
 });
 
