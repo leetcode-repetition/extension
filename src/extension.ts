@@ -315,27 +315,22 @@ async function callGetUserInfo(shouldRefresh: boolean): Promise<void> {
   );
 }
 
-async function setupGoogleLoginButton(): Promise<void> {
+async function setupGoogleLoginButton(): Promise<boolean> {
   console.log('Setting up Google login button!');
   const loginButton = document.getElementById(
     'login-button'
-  ) as HTMLButtonElement | null;
+  ) as HTMLButtonElement;
 
-  if (loginButton) {
-    loginButton.onclick = async (): Promise<void> => {
-      console.log('Google login button clicked');
-      const response = await browser.runtime.sendMessage({
-        action: 'initiateGoogleLogin',
-      });
+  loginButton.onclick = async (): Promise<boolean> => {
+    console.log('Google login button clicked');
+    const response = await browser.runtime.sendMessage({
+      action: 'initiateGoogleLogin',
+    });
 
-      if (response) {
-        console.log(`valid response!!! api key: ${response}`);
-        await setupExtension();
-      } else {
-        console.log('Google login failed');
-      }
-    };
-  }
+    return response as boolean;
+  };
+
+  return true;
 }
 
 browser.runtime.onMessage.addListener(
@@ -452,9 +447,9 @@ async function setupExtension(): Promise<void> {
 
 document.addEventListener('DOMContentLoaded', async (): Promise<void> => {
   console.log('DOMContentLoaded event fired');
-  const { apiKey } = await browser.storage.local.get('apiKey');
+  const { currentUser } = await browser.storage.local.get('currentUser');
 
-  if (!apiKey) {
+  if (!currentUser) {
     const tableContainer = document.getElementById('table-container');
     const loginScreen = document.getElementById('login-screen');
 
@@ -466,8 +461,12 @@ document.addEventListener('DOMContentLoaded', async (): Promise<void> => {
       loginScreen.style.display = 'flex';
     }
 
-    await setupGoogleLoginButton();
-    handleCookieFlagElements(await cookiesValid());
+    const success = await setupGoogleLoginButton();
+    if (success) {
+      await setupExtension();
+    } else {
+      console.error('Failed to set up Google login button');
+    }
   } else {
     await setupExtension();
   }

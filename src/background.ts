@@ -136,16 +136,18 @@ async function exchangeCodeForApiKey(
 
     const apiKey = response.apiKey;
     const username = response.username;
-    const userId = response.userId;
+    // const userId = response.userId;
+    const userId = '123'; // need to make API return userId
 
 
-    if (!apiKey) {
+    if (!apiKey || !username || !userId) {
       console.log('Error creating API key.');
       return { apiKey: null, username: null, userId: null };
     }
 
     await browser.storage.local.set({ apiKey });
     await browser.storage.local.set({ username });
+    console.log(`Username: ${username}`, `User ID: ${userId}`, `API Key: ${apiKey}`);
     return { apiKey, username, userId };
   } catch (error) {
     console.error('Error exchanging code for API key:', error);
@@ -156,12 +158,6 @@ async function exchangeCodeForApiKey(
 async function loginAndGetKey(): Promise<LoginResult> {
   const code = await launchLogin();
   const result = await exchangeCodeForApiKey(code);
-
-  await browser.storage.local.set({
-    apiKey: result.apiKey,
-    username: result.username,
-    userId: result.userId,
-  });
   return result;
 }
 
@@ -473,7 +469,7 @@ interface Message {
 }
 
 browser.runtime.onMessage.addListener(
-  (message: Message, sender): Promise<any> => {
+  async (message: Message, sender): Promise<any> => {
     console.log('Background received message:', message);
 
     if (message.action === 'getUserInfo') {
@@ -508,21 +504,29 @@ browser.runtime.onMessage.addListener(
 
     if (message.action === 'initiateGoogleLogin') {
       console.log('Beginning Google oauth2 process!');
-      return loginAndGetKey().then((result) => {
-        const { apiKey, username, userId } = result;
-        console.log(`received response: ${apiKey}, ${username}`);
-        if (apiKey && username && userId) {
-          console.log(
-            `valid response!!! api key: ${apiKey}, username: ${username}, userId: ${userId}`
-          );
-          return apiKey;
-        } else {
-          console.log('Google login failed');
-          return '';
-        }
-      });
+      const result = await loginAndGetKey();
+      const { apiKey, username, userId } = result;
+      console.log(`received response: ${apiKey}, ${username}`);
+      
+      if (apiKey && username && userId) {
+        console.log(
+          `valid response!!! api key: ${apiKey}, username: ${username}, userId: ${userId}`
+        );
+        await browser.storage.local.set({
+          currentUser: {
+            apiKey,
+            username,
+            userId,
+            apiKeyCreationTime: Date.now(),
+            completedProblems: {},
+          } as CurrentUser,
+        });
+        return true;
+      } else {
+        console.log('Google login failed');
+        return false;
+      }
     }
 
     return Promise.resolve(false);
-  }
-);
+  });
