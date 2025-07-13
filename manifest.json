@@ -15,23 +15,23 @@
     "https://leetcode.com/*"
   ],
   "background": {
-    "scripts": ["./src/background.js"],
+    "scripts": ["./dist/background.js"],
     "type": "module"
   },
   "content_scripts": [
-      {
-        "matches": ["https://leetcode.com/problems/*"],
-        "js": ["./src/popup.js"],
-        "run_at": "document_start"
-      }
+    {
+      "matches": ["https://leetcode.com/problems/*"],
+      "js": ["./dist/popup.js"],
+      "run_at": "document_start"
+    }
   ],
   "action": {
-      "default_popup": "./src/static/extension.html",
-      "default_icon": {
-          "16": "./src/static/leetcode-repetition-logo.png",
-          "48": "./src/static/leetcode-repetition-logo.png",
-          "128": "./src/static/leetcode-repetition-logo.png"
-      }
+    "default_popup": "./src/static/extension.html",
+    "default_icon": {
+      "16": "./src/static/leetcode-repetition-logo.png",
+      "48": "./src/static/leetcode-repetition-logo.png",
+      "128": "./src/static/leetcode-repetition-logo.png"
+    }
   },
   "browser_specific_settings": {
     "gecko": {
