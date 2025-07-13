@@ -306,40 +306,6 @@ async function fetchAndUpdateUserProblems(currentUser: CurrentUser): Promise<boo
   }
 }
 
-async function getUserInfo(
-  shouldRefresh: boolean
-): Promise<GetUserInfoResponse> {
-  let { currentUser } = (await browser.storage.local.get('currentUser')) as {
-    currentUser: CurrentUser | undefined;
-  };
-  const { disableButtons } = (await browser.storage.local.get(
-    'disableButtons'
-  )) as { disableButtons: boolean };
-
-  if (!currentUser || shouldRefresh) {
-    const success = await setUserInfo();
-    ({ currentUser } = (await browser.storage.local.get('currentUser')) as {
-      currentUser: CurrentUser | undefined;
-    });
-    if (!success || !currentUser) {
-      console.log('User not initialized');
-      return {
-        username: null,
-        completedProblems: [],
-        disableButtons: disableButtons || false,
-        apiKeyCreationTime: -1,
-      };
-    }
-  }
-
-  return {
-    username: currentUser.username,
-    completedProblems: Object.values(currentUser.completedProblems),
-    disableButtons: disableButtons || false,
-    apiKeyCreationTime: currentUser.apiKeyCreationTime,
-  };
-}
-
 async function checkIfProblemCompletedInLastDay(
   titleSlug: string
 ): Promise<boolean> {
@@ -420,10 +386,6 @@ async function initializeCurrentUser(apiKey: string, username: string, userId: s
 browser.runtime.onMessage.addListener(
   async (message: Message, sender): Promise<any> => {
     console.log('Background received message:', message);
-
-    if (message.action === 'getUserInfo') {
-      return getUserInfo(message.shouldRefresh);
-    }
 
     if (message.action === 'problemCompleted') {
       return addUserCompletedProblem(message.data).then((success) => ({
