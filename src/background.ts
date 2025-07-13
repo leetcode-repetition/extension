@@ -144,7 +144,7 @@ async function exchangeCodeForApiKey(
     const username = response.username;
     // const userId = response.userId;
     // const newApiKey = response.newApiKey;
-    const userId = '123'; // need to make API return userId
+    const userId = '8892729'; // need to make API return userId
     const apiKeyCreationTime = 0;
 
     if (!apiKey || !username || !userId) {
@@ -423,10 +423,10 @@ browser.runtime.onMessage.addListener(
           `valid login!!! api key: ${apiKey}, username: ${username}, userId: ${userId}`
         );
         await initializeCurrentUser(apiKey, username, userId, apiKeyCreationTime);
-        return true;
+        return Promise.resolve(true);
       } else {
         console.log('Google login failed');
-        return false;
+        return Promise.resolve(false);
       }
     }
 

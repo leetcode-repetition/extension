@@ -199,6 +199,7 @@ function initializeApiKeyTableCountdown(timeLeft: number): void {
 }
 
 function initializeEmptyTable(): void {
+  console.log('Initializing empty table');
   const tableContent = document.getElementById('problem-table-content');
   const deleteAllBtn = document.getElementById('delete-all-btn');
   const refreshBtn = document.getElementById('refresh-btn');
@@ -240,6 +241,7 @@ function createTable(
     35 - timeSinceApiKeyCreation > 0 &&
     !(window as any).countdownCancelled
   ) {
+    console.log('Setting up API key countdown');
     initializeApiKeyTableCountdown(35 - timeSinceApiKeyCreation);
   } else {
     initializeEmptyTable();
@@ -446,6 +448,8 @@ document.addEventListener('DOMContentLoaded', async (): Promise<void> => {
       ({ currentUser } = await browser.storage.local.get('currentUser'));
       console.log('Current user after login:', currentUser);
       await setupExtension(currentUser);
+    } else {
+      console.log('Google login button setup failed');
     }
   } else {
     await setupExtension(currentUser);
