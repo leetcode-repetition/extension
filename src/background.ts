@@ -150,13 +150,12 @@ async function exchangeCodeForApiKey(
       extraHeaders
     );
 
-    console.log("made it here: ", response);
     const apiKey = response.apiKey;
     const username = response.username;
     const userId = response.userId;
-    const apiKeyCreationTime = response.apiKeyCreationTime;
+    const apiKeyCreationTime = Number(response.apiKeyCreationTime);
 
-    if (!apiKey || !username || !userId) {
+    if (!apiKey || !username || !userId || !apiKeyCreationTime) {
       console.log('Error creating API key.');
       return {
         apiKey: null,
@@ -165,6 +164,7 @@ async function exchangeCodeForApiKey(
         apiKeyCreationTime: 0,
       };
     }
+    console.log('HELLO WORLD');
     console.log(
       `Username: ${username}`,
       `User ID: ${userId}`,
@@ -457,9 +457,9 @@ browser.runtime.onMessage.addListener(
         `received response: ${apiKey}, ${username}, ${userId}, ${apiKeyCreationTime}`
       );
 
-      if (apiKey && username && userId) {
+      if (apiKey && username && userId && apiKeyCreationTime) {
         console.log(
-          `valid login!!! api key: ${apiKey}, username: ${username}, userId: ${userId}`
+          `valid login!!! api key: ${apiKey}, username: ${username}, userId: ${userId}, key creation time: ${apiKeyCreationTime}`
         );
         await initializeCurrentUser(
           apiKey,
