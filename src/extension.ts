@@ -44,6 +44,14 @@ interface DeleteResponse {
   success: boolean;
 }
 
+function setRateLimitExceededMessage(show = true): boolean {
+  const element = document.getElementById('rate-limit-exceeded-message');
+  if (element) {
+    element.style.display = show ? 'block' : 'none';
+  }
+  return true;
+}
+
 function setUsernameElement(username: string | null): boolean {
   const element = document.getElementById('username');
   if (element) {
@@ -337,6 +345,10 @@ browser.runtime.onMessage.addListener(
     if (message.action === 'cancelCountdown') {
       (window as any).countdownActive = false;
       sendResponse({ success: true });
+    }
+    if (message.action === 'rateLimitExceeded') {
+      const success = setRateLimitExceededMessage(message.active);
+      sendResponse({ success: success });
     }
 
     return true;

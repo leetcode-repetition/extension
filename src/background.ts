@@ -79,8 +79,22 @@ async function sendToAPI(
   await disableButtons(false);
 
   if (!response.ok) {
+    if (response.status === 429) {
+      console.error('Daily rate limit exceeded (429)');
+
+      await sendMessageToExtensionTab({
+        action: 'rateLimitExceeded',
+        active: true,
+      });
+
+      throw new Error('Daily rate limit exceeded (429)');
+    }
     throw new Error(`HTTP error! status: ${response.status}`);
   }
+  await sendMessageToExtensionTab({
+    action: 'rateLimitExceeded',
+    active: false,
+  });
 
   const responseBody = await response.text();
   console.log('Response body:', responseBody);
@@ -385,9 +399,9 @@ async function initializeCurrentUser(
   userId: string,
   apiKeyCreationTime: number
 ) {
-  const timeSinceApiKeyCreation = Math.floor(
-    (Date.now() - apiKeyCreationTime) / 1000
-  );
+  const now = Date.now();
+  const timeSinceApiKeyCreation = Math.floor((now - apiKeyCreationTime) / 1000);
+  console.log(`${now} - ${apiKeyCreationTime} = ${timeSinceApiKeyCreation}`);
   await browser.storage.local.set({
     currentUser: {
       apiKey,
@@ -398,6 +412,22 @@ async function initializeCurrentUser(
     } as CurrentUser,
   });
   let { currentUser } = await browser.storage.local.get('currentUser');
+
+  // give API key time to propagate
+  if (timeSinceApiKeyCreation <= 35) {
+    await disableButtons(true);
+    await sendMessageToExtensionTab({
+      action: 'createTable',
+      username: username,
+      problems: [],
+      disableButtons: true,
+      timeSinceApiKeyCreation: timeSinceApiKeyCreation,
+    });
+    await new Promise((resolve) =>
+      setTimeout(resolve, (35 - timeSinceApiKeyCreation) * 1000)
+    );
+    await disableButtons(false);
+  }
 
   const success = await fetchAndUpdateUserProblems(currentUser);
   if (!success) {

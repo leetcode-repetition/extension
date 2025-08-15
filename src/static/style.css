@@ -95,6 +95,15 @@ a:hover {
     margin-right: 1px;
 }
 
+#problem-table {
+    display: flex;
+    flex-direction: column;
+}
+
+#rate-limit-exceeded-message {
+    display: none;
+}
+
 #problem-table-content button {
     width: 38px;
     height: auto;
