@@ -79,8 +79,22 @@ async function sendToAPI(
   await disableButtons(false);
 
   if (!response.ok) {
+    if (response.status === 429) {
+      console.error('Daily rate limit exceeded (429)');
+
+      await sendMessageToExtensionTab({
+        action: 'rateLimitExceeded',
+        active: true,
+      });
+
+      throw new Error('Daily rate limit exceeded (429)');
+    }
     throw new Error(`HTTP error! status: ${response.status}`);
   }
+  await sendMessageToExtensionTab({
+    action: 'rateLimitExceeded',
+    active: false,
+  });
 
   const responseBody = await response.text();
   console.log('Response body:', responseBody);
@@ -102,7 +116,12 @@ async function exchangeCodeForApiKey(
 ): Promise<LoginResult> {
   if (!code) {
     console.log('No code provided');
-    return { apiKey: null, username: null, userId: null, apiKeyCreationTime: 0 };
+    return {
+      apiKey: null,
+      username: null,
+      userId: null,
+      apiKeyCreationTime: 0,
+    };
   }
 
   const verifier = sessionStorage.getItem('pkce_verifier');
@@ -117,7 +136,12 @@ async function exchangeCodeForApiKey(
 
   if (!LEETCODE_SESSION?.value || !csrftoken?.value) {
     console.log('LeetCode cookies not found');
-    return { apiKey: null, username: null, userId: null, apiKeyCreationTime: 0 };
+    return {
+      apiKey: null,
+      username: null,
+      userId: null,
+      apiKeyCreationTime: 0,
+    };
   }
 
   console.log(`Leetcode session: ${LEETCODE_SESSION}`);
@@ -142,20 +166,34 @@ async function exchangeCodeForApiKey(
 
     const apiKey = response.apiKey;
     const username = response.username;
-    // const userId = response.userId;
-    // const newApiKey = response.newApiKey;
-    const userId = '8892729'; // need to make API return userId
-    const apiKeyCreationTime = 0;
+    const userId = response.userId;
+    const apiKeyCreationTime = Number(response.apiKeyCreationTime);
 
-    if (!apiKey || !username || !userId) {
+    if (!apiKey || !username || !userId || !apiKeyCreationTime) {
       console.log('Error creating API key.');
-      return { apiKey: null, username: null, userId: null, apiKeyCreationTime: 0 };
+      return {
+        apiKey: null,
+        username: null,
+        userId: null,
+        apiKeyCreationTime: 0,
+      };
     }
-    console.log(`Username: ${username}`, `User ID: ${userId}`, `API Key: ${apiKey}`, `Key Creation Time: ${apiKeyCreationTime}`);
+    console.log('HELLO WORLD');
+    console.log(
+      `Username: ${username}`,
+      `User ID: ${userId}`,
+      `API Key: ${apiKey}`,
+      `Key Creation Time: ${apiKeyCreationTime}`
+    );
     return { apiKey, username, userId, apiKeyCreationTime };
   } catch (error) {
     console.error('Error exchanging code for API key:', error);
-    return { apiKey: null, username: null, userId: null, apiKeyCreationTime: 0 };
+    return {
+      apiKey: null,
+      username: null,
+      userId: null,
+      apiKeyCreationTime: 0,
+    };
   }
 }
 
@@ -271,10 +309,15 @@ async function deleteUserCompletedProblem(
   }
 }
 
-async function fetchAndUpdateUserProblems(currentUser: CurrentUser): Promise<boolean> {
+async function fetchAndUpdateUserProblems(
+  currentUser: CurrentUser
+): Promise<boolean> {
   console.log('Fetching problems for user:', currentUser);
   try {
-    const tableResponse = await sendToAPI(`get-table?userId=${currentUser.userId}`, 'GET');
+    const tableResponse = await sendToAPI(
+      `get-table?userId=${currentUser.userId}`,
+      'GET'
+    );
     const problemsObject: Record<string, ProblemData> = tableResponse.table
       .map(
         ({ link, titleSlug, repeatDate, lastCompletionDate }: ProblemData) => ({
@@ -350,8 +393,15 @@ async function deleteAllUserCompletedProblems(): Promise<boolean> {
   }
 }
 
-async function initializeCurrentUser(apiKey: string, username: string, userId: string, apiKeyCreationTime: number) {
-  const timeSinceApiKeyCreation = Math.floor((Date.now() - apiKeyCreationTime) / 1000);
+async function initializeCurrentUser(
+  apiKey: string,
+  username: string,
+  userId: string,
+  apiKeyCreationTime: number
+) {
+  const now = Date.now();
+  const timeSinceApiKeyCreation = Math.floor((now - apiKeyCreationTime) / 1000);
+  console.log(`${now} - ${apiKeyCreationTime} = ${timeSinceApiKeyCreation}`);
   await browser.storage.local.set({
     currentUser: {
       apiKey,
@@ -362,6 +412,22 @@ async function initializeCurrentUser(apiKey: string, username: string, userId: s
     } as CurrentUser,
   });
   let { currentUser } = await browser.storage.local.get('currentUser');
+
+  // give API key time to propagate
+  if (timeSinceApiKeyCreation <= 35) {
+    await disableButtons(true);
+    await sendMessageToExtensionTab({
+      action: 'createTable',
+      username: username,
+      problems: [],
+      disableButtons: true,
+      timeSinceApiKeyCreation: timeSinceApiKeyCreation,
+    });
+    await new Promise((resolve) =>
+      setTimeout(resolve, (35 - timeSinceApiKeyCreation) * 1000)
+    );
+    await disableButtons(false);
+  }
 
   const success = await fetchAndUpdateUserProblems(currentUser);
   if (!success) {
@@ -415,14 +481,22 @@ browser.runtime.onMessage.addListener(
 
     if (message.action === 'initiateGoogleLogin') {
       console.log('Beginning Google oauth2 process!');
-      const { apiKey, username, userId, apiKeyCreationTime }= await exchangeCodeForApiKey(await launchLogin());
-      console.log(`received response: ${apiKey}, ${username}, ${userId}, ${apiKeyCreationTime}`);
-      
-      if (apiKey && username && userId) {
+      const { apiKey, username, userId, apiKeyCreationTime } =
+        await exchangeCodeForApiKey(await launchLogin());
+      console.log(
+        `received response: ${apiKey}, ${username}, ${userId}, ${apiKeyCreationTime}`
+      );
+
+      if (apiKey && username && userId && apiKeyCreationTime) {
         console.log(
-          `valid login!!! api key: ${apiKey}, username: ${username}, userId: ${userId}`
+          `valid login!!! api key: ${apiKey}, username: ${username}, userId: ${userId}, key creation time: ${apiKeyCreationTime}`
         );
-        await initializeCurrentUser(apiKey, username, userId, apiKeyCreationTime);
+        await initializeCurrentUser(
+          apiKey,
+          username,
+          userId,
+          apiKeyCreationTime
+        );
         return Promise.resolve(true);
       } else {
         console.log('Google login failed');
@@ -431,4 +505,5 @@ browser.runtime.onMessage.addListener(
     }
 
     return Promise.resolve(false);
-  });
+  }
+);
