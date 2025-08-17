@@ -5,10 +5,11 @@ export const CLIENT_ID: string =
 export const REDIRECT_URI: string = browser.identity.getRedirectURL();
 
 export async function buildAuthUrl(): Promise<string> {
-  const { verifier, challenge } = await generatePKCECodes();
+  const { verifier, challenge }: { verifier: string; challenge: string } =
+    await generatePKCECodes();
   sessionStorage.setItem('pkce_verifier', verifier);
 
-  const params = new URLSearchParams({
+  const params: URLSearchParams = new URLSearchParams({
     client_id: CLIENT_ID,
     response_type: 'code',
     redirect_uri: REDIRECT_URI,

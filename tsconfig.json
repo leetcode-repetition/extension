@@ -1,7 +1,7 @@
 {
   "compilerOptions": {
-    "module": "es2020",                // or "esnext"/"preserve"
-    "moduleResolution": "bundler",     // ← allows extensionless imports
+    "module": "es2020",
+    "moduleResolution": "bundler",
     "target": "es2020",
     "esModuleInterop": true,
     "strict": true,

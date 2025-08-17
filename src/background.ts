@@ -1,53 +1,12 @@
 import { buildAuthUrl, CLIENT_ID, REDIRECT_URI } from './auth';
-
-interface CurrentUser {
-  username: string;
-  userId: string;
-  apiKey: string;
-  apiKeyCreationTime: number;
-  completedProblems: Record<string, ProblemData>;
-}
-
-interface ProblemData {
-  link: string;
-  titleSlug: string;
-  repeatDate: string;
-  lastCompletionDate: string;
-}
-
-interface APIResponse {
-  [key: string]: any;
-}
-
-interface MessageResponse {
-  username: string;
-  userId: string;
-  success: boolean;
-}
-
-interface UserNameAndIdResponse {
-  username: string;
-  userId: string;
-}
-
-interface GetUserInfoResponse {
-  username: string | null;
-  completedProblems: ProblemData[];
-  disableButtons: boolean;
-  apiKeyCreationTime: number;
-}
-
-interface LoginResult {
-  apiKey: string | null;
-  username: string | null;
-  userId: string | null;
-  apiKeyCreationTime: number;
-}
-
-interface Message {
-  action: string;
-  [key: string]: any;
-}
+import {
+  CurrentUser,
+  ProblemData,
+  APIResponse,
+  UserNameAndIdResponse,
+  LoginResult,
+  Message,
+} from './models';
 
 async function sendToAPI(
   endpoint: string,

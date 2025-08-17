@@ -1,23 +1,5 @@
-interface ProblemData {
-  titleSlug: string;
-  link: string;
-  lastCompletionDate: string;
-  repeatDate: string;
-}
-
-interface SubmissionMessage {
-  type: string;
-  data: {
-    state: string;
-    status_msg: string;
-  };
-  url: string;
-  submissionId: string;
-}
-
-interface CheckProblemResponse {
-  problemCompletedInLastDay: boolean;
-}
+import { CheckProblemResponse, SubmissionMessage, ProblemData } from './models';
+import { getProblemFetchInterceptorScript } from './intercept-scripts';
 
 let currentProblemData: ProblemData = {
   titleSlug: '',
@@ -135,78 +117,6 @@ function handleButtonClick(button: HTMLButtonElement): void {
   });
 }
 
-(function (): void {
-  if ((window as any).__leetcodeRepetitionInjected) {
-    return;
-  }
-  (window as any).__leetcodeRepetitionInjected = true;
-
-  const script: HTMLScriptElement = document.createElement('script');
-  script.textContent = `
-    (function() {
-      if (window.__leetcodeFetchIntercepted) {
-        return;
-      }
-      window.__leetcodeFetchIntercepted = true;
-
-      const originalFetch = window.fetch;
-      const processedSubmissions = new Set();
-
-      // Create a function with native JS that works with the browser's fetch API
-      function interceptFetch(input, init) {
-        // Get the URL string regardless of input type
-        let url = "";
-        if (typeof input === "string") {
-          url = input;
-        } else if (input instanceof Request) {
-          url = input.url;
-        } else {
-          url = String(input);
-        }
-        
-        const submissionMatch = url.match(/\\/submissions\\/detail\\/(\\d+)\\/check\\//);
-        if (submissionMatch) {
-          const submissionId = submissionMatch[1];
-
-          if (processedSubmissions.has(submissionId)) {
-            return originalFetch(input, init);
-          }
-
-          console.log('Fetching original request: ', submissionMatch);
-          return originalFetch(input, init).then(function(response) {
-            const clonedResponse = response.clone();
-            return clonedResponse.json().then(function(responseData) {
-              if (
-                responseData.state === 'SUCCESS' &&
-                responseData.status_msg === 'Accepted'
-              ) {
-                console.log('Processing successful submission');
-                processedSubmissions.add(submissionId);
-                window.postMessage(
-                  {
-                    type: 'submissionAccepted',
-                    data: responseData,
-                    url: window.location.href,
-                    submissionId: submissionId,
-                  },
-                  '*'
-                );
-              }
-              return response;
-            });
-          });
-        }
-        return originalFetch(input, init);
-      }
-
-      window.fetch = interceptFetch;
-    })();
-  `;
-
-  (document.head || document.documentElement).appendChild(script);
-  script.remove();
-})();
-
 window.addEventListener('message', function (event: MessageEvent): void {
   const data = event.data as SubmissionMessage;
 
@@ -260,4 +170,22 @@ window.addEventListener('message', function (event: MessageEvent): void {
       processingSubmission = false;
     }
   }
+});
+
+function injectProblemFetchInterceptor(): void {
+  console.log('MADE IT HERE');
+  if ((window as any).__leetcodeRepetitionInjected) {
+    return;
+  }
+  (window as any).__leetcodeRepetitionInjected = true;
+
+  const script: HTMLScriptElement = document.createElement('script');
+  script.textContent = getProblemFetchInterceptorScript();
+  console.log('script about to be added');
+  (document.head || document.documentElement).appendChild(script);
+  script.remove();
+}
+
+document.addEventListener('DOMContentLoaded', () => {
+  injectProblemFetchInterceptor();
 });
