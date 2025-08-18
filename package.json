@@ -9,11 +9,12 @@
     "globals": "^15.9.0",
     "jiti": "^2.4.2",
     "prettier": "^3.4.2",
+    "raw-loader": "^4.0.2",
     "typescript": "^5.8.3"
   },
   "scripts": {
     "format": "prettier --write \"src/**/*.ts\" && eslint \"src/**/*.ts\" --fix",
-    "build": "esbuild src/background.ts src/popup.ts src/extension.ts --bundle --outdir=dist --format=esm --sourcemap",
-    "watch": "esbuild src/background.ts src/popup.ts src/extension.ts --bundle --outdir=dist --format=esm --sourcemap --watch"
+    "build": "esbuild src/background.ts src/popup.ts src/extension.ts --bundle --outdir=dist --format=esm --sourcemap --loader:.html=text --loader:.css=text",
+    "watch": "esbuild src/background.ts src/popup.ts src/extension.ts --bundle --outdir=dist --format=esm --sourcemap --watch --loader:.html=text --loader:.css=text"
   }
 }

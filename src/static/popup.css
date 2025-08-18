@@ -1,0 +1,38 @@
+#lre-overlay {
+    position: fixed;
+    inset: 0;
+    background: rgba(0, 0, 0, 0.6);
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    z-index: 9998;
+}
+
+#lre-popup {
+    z-index: 9999;
+    background: #1c1c1c;
+    padding: 20px;
+    border: 2px solid #000;
+    border-radius: 10px;
+    width: 600px;
+    text-align: center;
+    color: white;
+}
+
+#lre-anki-btns {
+    display: flex;
+    justify-content: center;
+    gap: 20px;
+}
+
+#lre-anki-btns button {
+    height: 30px;
+    width: 80px;
+    border: 2px solid #000;
+    border-radius: 10px;
+    background-color: #23222b;
+}
+
+#lre-anki-btns button:hover {
+    background-color: #ff8c00;
+}

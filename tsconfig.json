@@ -11,7 +11,7 @@
     "baseUrl": ".",
     "lib": ["ES2020","DOM"],
     "skipLibCheck": true,
-    "typeRoots": ["./node_modules/@types","./src/types"]
+    "typeRoots": ["./node_modules/@types","src/declarations"]
   },
   "include": ["src/**/*"],
   "exclude": ["node_modules","dist"]

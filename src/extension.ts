@@ -80,7 +80,7 @@ function createRowElement(row: ProblemData): HTMLDivElement {
   problemDiv.className = 'problem';
   problemDataDiv.className = 'data';
   deleteBtn.className = 'delete-btn';
-  img.src = './trash.svg';
+  img.src = './imgs/trash.svg';
 
   link.href = row.link;
   link.textContent = row.titleSlug;
@@ -115,7 +115,7 @@ function createDeleteAllButton(): void {
   const img = document.createElement('img');
 
   text.textContent = 'Delete All';
-  img.src = './trash.svg';
+  img.src = './imgs/trash.svg';
 
   element.appendChild(text);
   element.appendChild(img);

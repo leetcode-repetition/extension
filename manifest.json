@@ -25,12 +25,18 @@
       "run_at": "document_start"
     }
   ],
+  "web_accessible_resources": [
+    {
+      "resources": ["static/*"],
+      "matches": ["https://leetcode.com/*"]
+    }
+  ],
   "action": {
     "default_popup": "./src/static/extension.html",
     "default_icon": {
-      "16": "./src/static/leetcode-repetition-logo.png",
-      "48": "./src/static/leetcode-repetition-logo.png",
-      "128": "./src/static/leetcode-repetition-logo.png"
+      "16": "./src/static/imgs/leetcode-repetition-logo.png",
+      "48": "./src/static/imgs/leetcode-repetition-logo.png",
+      "128": "./src/static/imgs/leetcode-repetition-logo.png"
     }
   },
   "browser_specific_settings": {

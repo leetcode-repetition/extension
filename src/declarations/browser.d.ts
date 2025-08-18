@@ -1,6 +1,7 @@
 declare namespace browser {
   namespace runtime {
     function sendMessage(message: any): Promise<any>;
+    function getURL(path: string): string;
     const onMessage: {
       addListener: (
         callback: (

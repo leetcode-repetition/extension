@@ -1,5 +1,7 @@
 import { CheckProblemResponse, SubmissionMessage, ProblemData } from './models';
 import { getProblemFetchInterceptorScript } from './intercept-scripts';
+import popupHTML from './static/popup.html';
+import popupCSS from './static/popup.css';
 
 let currentProblemData: ProblemData = {
   titleSlug: '',
@@ -10,70 +12,50 @@ let currentProblemData: ProblemData = {
 let processingSubmission: boolean = false;
 const processedMessageIds: Set<string> = new Set();
 
-const createPopupHTML = (): string => `
-  <div id="lre-overlay">
-    <div id="lre-popup">
-      <p>Great Job! When would you like to repeat this problem?</p><br>
-      <div id="lre-anki-btns">
-        ${[1, 3, 7, 14, 30].map((interval: number) => `<button>${interval} Day${interval > 1 ? 's' : ''}</button>`).join('')}
-        <button>NEVER</button>
-      </div>
-    </div>
-  </div>
-`;
+function createPopupElement(): HTMLDivElement {
+  const popupContainer = document.createElement('div');
 
-function applyStyles(): void {
-  const styles: Record<string, string> = {
-    'lre-overlay': `
-      position: fixed; 
-      inset: 0; 
-      background: rgba(0, 0, 0, 0.6);
-      display: flex; 
-      justify-content: center; 
-      align-items: center;
-      z-index: 9998;
-    `,
-    'lre-popup': `
-      z-index: 9999;
-      background: #1c1c1c; 
-      padding: 20px; 
-      border: 2px solid #000;
-      border-radius: 10px; 
-      width: 600px; 
-      text-align: center; 
-      color: white;
-    `,
-    'lre-anki-btns': `
-      display: flex;
-      justify-content: center;
-      gap: 20px;
-    `,
-  };
+  // Use imported HTML content directly
+  console.log('Using imported HTML content');
+  popupContainer.innerHTML = popupHTML;
 
-  Object.entries(styles).forEach(([id, style]: [string, string]): void => {
-    const element = document.getElementById(id);
-    if (element) {
-      element.style.cssText = style;
-    }
-  });
+  // Add buttons to #interval-buttons
+  console.log('Looking for interval-buttons container');
+  const intervalButtonsContainer =
+    popupContainer.querySelector('#interval-buttons');
 
-  document
+  if (intervalButtonsContainer) {
+    console.log('Found interval-buttons container, adding buttons');
+    [1, 3, 7, 14, 30].forEach((interval: number) => {
+      const button = document.createElement('button');
+      button.textContent = `${interval} Day${interval > 1 ? 's' : ''}`;
+      intervalButtonsContainer.appendChild(button);
+    });
+  } else {
+    console.error('No #interval-buttons container found in HTML');
+  }
+
+  return popupContainer;
+}
+
+function injectCSS(): void {
+  if (document.querySelector('#leetcode-repetition-styles')) {
+    return;
+  }
+
+  // Create a style element with imported CSS content
+  const style = document.createElement('style');
+  style.id = 'leetcode-repetition-styles';
+  style.textContent = popupCSS;
+  document.head.appendChild(style);
+  console.log('CSS injected from imported content');
+}
+
+function setupButtonEventListeners(container: HTMLElement): void {
+  container
     .querySelectorAll('#lre-anki-btns button')
     .forEach((button: Element): void => {
       const buttonElement = button as HTMLButtonElement;
-      buttonElement.style.cssText = `
-      height: 30px; 
-      width: 80px;
-      border: 2px solid #000;
-      border-radius: 10px;
-      background-color: #23222b;
-    `;
-      buttonElement.addEventListener('mouseover', (): void => {
-        buttonElement.style.backgroundColor = '#ff8c00';
-      });
-      buttonElement.addEventListener('mouseout', (): void => {
-        buttonElement.style.backgroundColor = '#23222b';
-      });
       buttonElement.addEventListener(
         'click',
         (): void => {
@@ -146,19 +128,50 @@ window.addEventListener('message', function (event: MessageEvent): void {
             action: 'checkIfProblemCompletedInLastDay',
             titleSlug: currentProblemData.titleSlug,
           })
-          .then((response: CheckProblemResponse): void => {
+          .then(async (response: unknown): Promise<void> => {
+            const typedResponse = response as CheckProblemResponse;
             console.log('Received checkIfProblemCompletedInLastDay response.');
-            if (!response.problemCompletedInLastDay) {
+
+            if (!typedResponse.problemCompletedInLastDay) {
               console.log('Problem is newly completed!!!');
-              const popupContainer: HTMLDivElement =
-                document.createElement('div');
-              popupContainer.innerHTML = createPopupHTML();
-              document.body.appendChild(popupContainer);
-              applyStyles();
+
+              // Inject CSS only if needed
+              injectCSS();
+
+              // Create and add the popup
+              const popupContainer = createPopupElement();
+              console.log(
+                'Popup container created, appending to document body'
+              );
+
+              // Make sure we're getting the overlay element
+              const overlay = popupContainer.querySelector('#lre-overlay');
+              if (overlay) {
+                console.log('Found #lre-overlay, appending directly');
+                document.body.appendChild(overlay);
+              } else {
+                console.log('No #lre-overlay found, appending container');
+                document.body.appendChild(popupContainer);
+              }
+
+              console.log(
+                'Popup added to DOM, visible:',
+                !!document.querySelector('#lre-overlay')
+              );
+
+              // Setup event listeners on the element that's actually in the DOM
+              const eventTarget = (document.querySelector('#lre-overlay') ||
+                popupContainer) as HTMLElement;
+              console.log(
+                'Setting up event listeners on:',
+                eventTarget.id || 'container'
+              );
+              setupButtonEventListeners(eventTarget);
             }
             processingSubmission = false;
           })
-          .catch((): void => {
+          .catch((error: Error): void => {
+            console.error('Error checking problem completion:', error);
             processingSubmission = false;
           });
       } else {
@@ -173,7 +186,6 @@ window.addEventListener('message', function (event: MessageEvent): void {
 });
 
 function injectProblemFetchInterceptor(): void {
-  console.log('MADE IT HERE');
   if ((window as any).__leetcodeRepetitionInjected) {
     return;
   }
@@ -181,7 +193,6 @@ function injectProblemFetchInterceptor(): void {
 
   const script: HTMLScriptElement = document.createElement('script');
   script.textContent = getProblemFetchInterceptorScript();
-  console.log('script about to be added');
   (document.head || document.documentElement).appendChild(script);
   script.remove();
 }
