@@ -1,4 +1,4 @@
-import { generatePKCECodes } from './utilities';
+import { generatePKCECodes } from './utils';
 
 export const CLIENT_ID: string =
   '968959270720-vupaquhphp0jjs58r3mm4pm0t0u7l16i.apps.googleusercontent.com';

@@ -3,7 +3,6 @@ import {
   CurrentUser,
   ProblemData,
   APIResponse,
-  UserNameAndIdResponse,
   LoginResult,
   Message,
 } from './models';
@@ -172,12 +171,6 @@ async function disableButtons(state: boolean): Promise<void> {
     action: 'disableButtons',
     disableButtons: state,
   });
-}
-
-async function getUsernameAndUserId(): Promise<UserNameAndIdResponse> {
-  const { username } = await browser.storage.local.get('username');
-  const { userId } = await browser.storage.local.get('userId');
-  return { username, userId };
 }
 
 async function addUserCompletedProblem(problem: ProblemData): Promise<boolean> {

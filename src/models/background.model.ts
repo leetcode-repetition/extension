@@ -23,11 +23,6 @@ export interface MessageResponse {
   success: boolean;
 }
 
-export interface UserNameAndIdResponse {
-  username: string;
-  userId: string;
-}
-
 export interface GetUserInfoResponse {
   username: string | null;
   completedProblems: ProblemData[];

@@ -7,3 +7,8 @@ declare module '*.css' {
   const content: string;
   export default content;
 }
+
+interface Window {
+  __leetcodeRepetitionInjected?: boolean;
+  __leetcodeFetchIntercepted?: boolean;
+}
