@@ -3,6 +3,8 @@ import { getProblemFetchInterceptorScript } from './intercept-scripts';
 import popupHTML from './static/popup.html';
 import popupCSS from './static/popup.css';
 
+import { getRepeatDate } from './utils';
+
 let currentProblemData: ProblemData = {
   titleSlug: '',
   link: '',
@@ -14,41 +16,22 @@ const processedMessageIds: Set<string> = new Set();
 
 function createPopupElement(): HTMLDivElement {
   const popupContainer = document.createElement('div');
-
-  // Use imported HTML content directly
-  console.log('Using imported HTML content');
   popupContainer.innerHTML = popupHTML;
-
-  // Add buttons to #interval-buttons
-  console.log('Looking for interval-buttons container');
   const intervalButtonsContainer =
-    popupContainer.querySelector('#interval-buttons');
+    popupContainer.querySelector('#lre-anki-btns');
 
   if (intervalButtonsContainer) {
-    console.log('Found interval-buttons container, adding buttons');
     [1, 3, 7, 14, 30].forEach((interval: number) => {
       const button = document.createElement('button');
       button.textContent = `${interval} Day${interval > 1 ? 's' : ''}`;
       intervalButtonsContainer.appendChild(button);
     });
-  } else {
-    console.error('No #interval-buttons container found in HTML');
+    const button = document.createElement('button');
+    button.textContent = 'NEVER';
+    intervalButtonsContainer.appendChild(button);
   }
 
   return popupContainer;
-}
-
-function injectCSS(): void {
-  if (document.querySelector('#leetcode-repetition-styles')) {
-    return;
-  }
-
-  // Create a style element with imported CSS content
-  const style = document.createElement('style');
-  style.id = 'leetcode-repetition-styles';
-  style.textContent = popupCSS;
-  document.head.appendChild(style);
-  console.log('CSS injected from imported content');
 }
 
 function setupButtonEventListeners(container: HTMLElement): void {
@@ -68,12 +51,6 @@ function setupButtonEventListeners(container: HTMLElement): void {
         { once: true }
       );
     });
-}
-
-function getRepeatDate(dateString: string, daysLater: string): string {
-  const date: Date = new Date(dateString);
-  date.setDate(date.getDate() + parseInt(daysLater, 10));
-  return `${date.getMonth() + 1}/${date.getDate()}/${date.getFullYear().toString()}`;
 }
 
 function handleButtonClick(button: HTMLButtonElement): void {
@@ -99,89 +76,43 @@ function handleButtonClick(button: HTMLButtonElement): void {
   });
 }
 
+function processSubmissionAccepted(data: SubmissionMessage): void {
+  const messageId: string = data.submissionId;
+  if (processedMessageIds.has(messageId)) {
+    return;
+  }
+
+  processedMessageIds.add(messageId);
+  processingSubmission = true;
+  console.log('Submission Accepted!!! Message id:', messageId);
+
+  const urlMatch: RegExpMatchArray | null =
+    data.url.match(/problems\/([^\/]+)/);
+  const linkMatch: RegExpMatchArray | null = data.url.match(
+    /(https:\/\/leetcode\.com\/problems\/[^\/]+)/
+  );
+
+  if (urlMatch && linkMatch) {
+    currentProblemData.titleSlug = urlMatch[1];
+    currentProblemData.link = linkMatch[1];
+
+    const style = document.createElement('style');
+    const popupElement = createPopupElement();
+
+    style.textContent = popupCSS;
+    document.body.appendChild(style);
+    document.body.appendChild(popupElement);
+
+    setupButtonEventListeners(popupElement);
+    processingSubmission = false;
+  }
+}
+
 window.addEventListener('message', function (event: MessageEvent): void {
   const data = event.data as SubmissionMessage;
 
   if (data.type === 'submissionAccepted' && !processingSubmission) {
-    const messageId: string = data.submissionId;
-    if (processedMessageIds.has(messageId)) {
-      return;
-    }
-    processedMessageIds.add(messageId);
-    processingSubmission = true;
-
-    console.log('Submission Accepted!!! Message id: ', messageId);
-
-    const urlMatch: RegExpMatchArray | null =
-      data.url.match(/problems\/([^\/]+)/);
-    const linkMatch: RegExpMatchArray | null = data.url.match(
-      /(https:\/\/leetcode\.com\/problems\/[^\/]+)/
-    );
-
-    if (urlMatch && linkMatch) {
-      currentProblemData.titleSlug = urlMatch[1];
-      currentProblemData.link = linkMatch[1];
-
-      if (browser && browser.runtime && browser.runtime.id) {
-        browser.runtime
-          .sendMessage({
-            action: 'checkIfProblemCompletedInLastDay',
-            titleSlug: currentProblemData.titleSlug,
-          })
-          .then(async (response: unknown): Promise<void> => {
-            const typedResponse = response as CheckProblemResponse;
-            console.log('Received checkIfProblemCompletedInLastDay response.');
-
-            if (!typedResponse.problemCompletedInLastDay) {
-              console.log('Problem is newly completed!!!');
-
-              // Inject CSS only if needed
-              injectCSS();
-
-              // Create and add the popup
-              const popupContainer = createPopupElement();
-              console.log(
-                'Popup container created, appending to document body'
-              );
-
-              // Make sure we're getting the overlay element
-              const overlay = popupContainer.querySelector('#lre-overlay');
-              if (overlay) {
-                console.log('Found #lre-overlay, appending directly');
-                document.body.appendChild(overlay);
-              } else {
-                console.log('No #lre-overlay found, appending container');
-                document.body.appendChild(popupContainer);
-              }
-
-              console.log(
-                'Popup added to DOM, visible:',
-                !!document.querySelector('#lre-overlay')
-              );
-
-              // Setup event listeners on the element that's actually in the DOM
-              const eventTarget = (document.querySelector('#lre-overlay') ||
-                popupContainer) as HTMLElement;
-              console.log(
-                'Setting up event listeners on:',
-                eventTarget.id || 'container'
-              );
-              setupButtonEventListeners(eventTarget);
-            }
-            processingSubmission = false;
-          })
-          .catch((error: Error): void => {
-            console.error('Error checking problem completion:', error);
-            processingSubmission = false;
-          });
-      } else {
-        console.log('ERROR: Unable to make necessary connection...');
-        processingSubmission = false;
-      }
-    } else {
-      console.log('ERROR: Unable to extract problem information from URL');
-      processingSubmission = false;
-    }
+    processSubmissionAccepted(data);
   }
 });
 

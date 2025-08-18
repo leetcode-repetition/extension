@@ -19,7 +19,7 @@
     color: white;
 }
 
-#lre-anki-btns {
+#lre-anki-btns, #interval-buttons {
     display: flex;
     justify-content: center;
     gap: 20px;

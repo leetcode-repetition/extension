@@ -208,7 +208,9 @@ async function addUserCompletedProblem(problem: ProblemData): Promise<boolean> {
     );
     console.log('Successfully inserted row:', response);
 
-    const problems = Object.values(currentUser.completedProblems);
+    const problems = Object.values(currentUser.completedProblems).filter(
+      (p) => p.titleSlug !== completedProblem.titleSlug
+    );
     problems.push(completedProblem);
 
     const sortedProblems = problems.sort(
@@ -306,24 +308,6 @@ async function fetchAndUpdateUserProblems(
     console.log(`Error getting problems table! ERROR: ${error}`);
     return false;
   }
-}
-
-async function checkIfProblemCompletedInLastDay(
-  titleSlug: string
-): Promise<boolean> {
-  const { currentUser } = (await browser.storage.local.get('currentUser')) as {
-    currentUser: CurrentUser | undefined;
-  };
-  if (!currentUser || !currentUser.completedProblems[titleSlug]) {
-    return false;
-  }
-
-  const problem = currentUser.completedProblems[titleSlug];
-  const lastCompletionDate = new Date(problem.lastCompletionDate);
-  const now = new Date();
-  const oneDayAgo = new Date(now.getTime() - 24 * 60 * 60 * 1000);
-
-  return lastCompletionDate > oneDayAgo;
 }
 
 async function deleteAllUserCompletedProblems(): Promise<boolean> {
@@ -428,14 +412,6 @@ browser.runtime.onMessage.addListener(
     if (message.action === 'deleteAllProblems') {
       console.log('Deleting ALL problems');
       return deleteAllUserCompletedProblems().then((success) => ({ success }));
-    }
-
-    if (message.action === 'checkIfProblemCompletedInLastDay') {
-      console.log(
-        'Checking if problem is already completed:',
-        message.titleSlug
-      );
-      return checkIfProblemCompletedInLastDay(message.titleSlug);
     }
 
     if (message.action === 'initiateGoogleLogin') {
